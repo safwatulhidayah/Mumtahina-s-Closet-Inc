@@ -1,0 +1,229 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access unless explicitly granted
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'denaislam09@gmail.com' ||
+        request.auth.token.email == 'clientshabnamusa@gmail.com'
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User Profile Validation
+    function isValidUserProfile(data) {
+      return (
+        (('id' in data && data.id is string && data.id.size() <= 128) || ('uid' in data && data.uid is string && data.uid.size() <= 128)) &&
+        (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+        (!('role' in data) || (data.role is string && (data.role == 'customer' || (data.role == 'admin' && isAdmin())))) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 60)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 60))
+      );
+    }
+
+    // Shipping Address Validation
+    function isValidAddress(data) {
+      return data.keys().hasAll(['id', 'street', 'city', 'state', 'zip']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.street is string && data.street.size() > 0 && data.street.size() <= 150 &&
+        data.city is string && data.city.size() > 0 && data.city.size() <= 100 &&
+        data.state is string && data.state.size() > 0 && data.state.size() <= 50 &&
+        data.zip is string && data.zip.size() > 0 && data.zip.size() <= 20 &&
+        (!('title' in data) || (data.title is string && data.title.size() <= 100)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('isDefault' in data) || data.isDefault is bool) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 60)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 60));
+    }
+
+    // Order Validation
+    function isValidOrder(data) {
+      return (
+        (('orderId' in data && data.orderId is string && data.orderId.size() <= 64) || ('id' in data && data.id is string && data.id.size() <= 64)) &&
+        (('customerId' in data && data.customerId is string && data.customerId.size() <= 128) || ('userId' in data && data.userId is string && data.userId.size() <= 128)) &&
+        (('totalAmount' in data && data.totalAmount is number && data.totalAmount >= 0) || ('total' in data && data.total is number && data.total >= 0)) &&
+        (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 100)) &&
+        (!('customerEmail' in data) || (data.customerEmail is string && data.customerEmail.size() <= 120)) &&
+        (!('paymentStatus' in data) || (data.paymentStatus is string && data.paymentStatus.size() <= 32)) &&
+        (!('orderStatus' in data) || (data.orderStatus is string && data.orderStatus.size() <= 32))
+      );
+    }
+
+    // Wishlist Item Validation
+    function isValidWishlistItem(data) {
+      return data.keys().hasAll(['id', 'productId']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.productId is string && data.productId.size() <= 64;
+    }
+
+    // Inquiry Validation
+    function isValidInquiry(data) {
+      return (
+        (('name' in data && data.name is string && data.name.size() > 0 && data.name.size() <= 100) || ('customerName' in data && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 100)) &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 120 &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('subject' in data) || (data.subject is string && data.subject.size() <= 150)) &&
+        (!('type' in data) || (data.type is string && data.type.size() <= 100)) &&
+        (!('status' in data) || (data.status is string && data.status.size() <= 50))
+      );
+    }
+
+    // Review Validation
+    function isValidReview(data) {
+      return (
+        (('reviewId' in data && data.reviewId is string) || ('id' in data && data.id is string)) &&
+        ('productId' in data && data.productId is string && data.productId.size() <= 64) &&
+        (('customerName' in data && data.customerName is string && data.customerName.size() <= 100) || ('userName' in data && data.userName is string && data.userName.size() <= 100)) &&
+        ('rating' in data && data.rating is number && data.rating >= 1 && data.rating <= 5) &&
+        ('comment' in data && data.comment is string && data.comment.size() > 0 && data.comment.size() <= 3000) &&
+        (!('customerId' in data) || (data.customerId is string && data.customerId.size() <= 128)) &&
+        (!('status' in data) || (data.status is string && data.status.size() <= 32))
+      );
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isOwner(userId) && isValidUserProfile(incoming()) && (incoming().id == userId || incoming().uid == userId);
+      allow update: if isValidId(userId) && isOwner(userId) && isValidUserProfile(incoming());
+      allow delete: if false;
+
+      // User Orders subcollection
+      match /orders/{orderId} {
+        allow get, list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create: if isValidId(userId) && isOwner(userId) && isValidOrder(incoming()) && (incoming().userId == userId || incoming().customerId == userId);
+        allow update: if isValidId(userId) && isAdmin();
+        allow delete: if false;
+      }
+
+      // User Wishlist subcollection
+      match /wishlist/{productId} {
+        allow get, list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create, update: if isValidId(userId) && isOwner(userId) && isValidWishlistItem(incoming());
+        allow delete: if isValidId(userId) && isOwner(userId);
+      }
+
+      // User Cart subcollection
+      match /cart/{itemId} {
+        allow get, list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create, update, delete: if isValidId(userId) && isOwner(userId);
+      }
+
+      // User Addresses subcollection
+      match /addresses/{addressId} {
+        allow get, list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create, update: if isValidId(userId) && isOwner(userId) && isValidAddress(incoming());
+        allow delete: if isValidId(userId) && isOwner(userId);
+      }
+    }
+
+    // Store Orders collection (Admin management & customer tracking)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        isAdmin() ||
+        (isSignedIn() && (
+          ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
+          ('userId' in resource.data && resource.data.userId == request.auth.uid)
+        ))
+      );
+      allow list: if isAdmin() || (
+        isSignedIn() && (
+          ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
+          ('userId' in resource.data && resource.data.userId == request.auth.uid)
+        )
+      );
+      allow create: if isValidId(orderId) && isValidOrder(incoming()) && (
+        isAdmin() ||
+        (isSignedIn() && (
+          ('customerId' in incoming() && incoming().customerId == request.auth.uid) ||
+          ('userId' in incoming() && incoming().userId == request.auth.uid)
+        )) ||
+        (!isSignedIn() && (
+          ('customerId' in incoming() && incoming().customerId is string) ||
+          ('userId' in incoming() && incoming().userId is string)
+        ))
+      );
+      allow update: if isValidId(orderId) && isAdmin();
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // Public Inquiries collection
+    match /inquiries/{inquiryId} {
+      allow create: if isValidId(inquiryId) && isValidInquiry(incoming());
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Reviews collection
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidId(reviewId) && isValidReview(incoming()) && (
+        !isSignedIn() ||
+        !('customerId' in incoming()) ||
+        incoming().customerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isValidId(reviewId) && (
+        isAdmin() ||
+        (isSignedIn() && 'customerId' in resource.data && resource.data.customerId == request.auth.uid)
+      );
+      allow delete: if isValidId(reviewId) && (
+        isAdmin() ||
+        (isSignedIn() && 'customerId' in resource.data && resource.data.customerId == request.auth.uid)
+      );
+    }
+
+    // Products catalog
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Categories catalog
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Settings collection (Store configuration including Zelle payment settings)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Connection testing doc
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

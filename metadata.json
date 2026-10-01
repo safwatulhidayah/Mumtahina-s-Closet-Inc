@@ -1,0 +1,6 @@
+{
+  "name": "Mumtahina’s Closet Inc",
+  "description": "Modern, clean, and elegant modest fashion clothing e-commerce website for Mumtahina’s Closet Inc, featuring curated collections, responsive shopping, seamless cart, and checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
