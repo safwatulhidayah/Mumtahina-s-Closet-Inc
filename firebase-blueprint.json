@@ -165,6 +165,90 @@
       },
       "required": ["orderId", "customerName", "customerEmail", "totalAmount", "paymentStatus", "orderStatus"]
     },
+    "Product": {
+      "title": "Product",
+      "description": "Modest apparel and accessory products catalog",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identifier",
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Product display name",
+          "maxLength": 150
+        },
+        "price": {
+          "type": "number",
+          "description": "Product price in USD"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Original retail price in USD"
+        },
+        "category": {
+          "type": "string",
+          "description": "Catalog category code"
+        },
+        "categoryLabel": {
+          "type": "string",
+          "description": "Category display name"
+        },
+        "images": {
+          "type": "array",
+          "description": "List of gallery image URLs with primary image at index 0",
+          "items": { "type": "string" }
+        },
+        "colorNames": {
+          "type": "array",
+          "description": "List of available color names as text",
+          "items": { "type": "string" }
+        },
+        "colors": {
+          "type": "array",
+          "description": "List of available color options with hex codes",
+          "items": { "type": "object" }
+        },
+        "sizes": {
+          "type": "array",
+          "description": "List of available size options",
+          "items": { "type": "string" }
+        },
+        "description": {
+          "type": "string",
+          "description": "Product narrative description",
+          "maxLength": 2000
+        },
+        "fabric": {
+          "type": "string",
+          "description": "Fabric and materials used",
+          "maxLength": 150
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory units"
+        },
+        "isBestSeller": {
+          "type": "boolean",
+          "description": "Whether featured on homepage"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Product catalog active status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["id", "name", "price", "images", "colors"]
+    },
     "WishlistItem": {
       "title": "WishlistItem",
       "description": "Saved product in user's wishlist",

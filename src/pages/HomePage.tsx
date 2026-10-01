@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { HeroBannerCarousel } from '../components/HeroBannerCarousel';
+import { AnimatedSection } from '../components/AnimatedSection';
 import { useShop } from '../context/ShopContext';
 
 export const HomePage: React.FC = () => {
@@ -97,64 +98,66 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Shop by Category Section */}
-      <section id="category-shortcuts-section" className="bg-white py-6 sm:py-16 border-y border-[#F0E4E6]/60 w-full max-w-full overflow-hidden">
-        <div className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8 sm:mb-12">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
-                Curated Collections
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0F1E36] mt-1">
-                Shop by Category
-              </h2>
+      <AnimatedSection yOffset={16}>
+        <section id="category-shortcuts-section" className="bg-white py-6 sm:py-16 border-y border-[#F0E4E6]/60 w-full max-w-full overflow-hidden">
+          <div className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8 sm:mb-12">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
+                  Curated Collections
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0F1E36] mt-1">
+                  Shop by Category
+                </h2>
+              </div>
+              <Link
+                to="/shop"
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
+              >
+                <span>Explore All Categories</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
-            <Link
-              to="/shop"
-              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
-            >
-              <span>Explore All Categories</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 sm:gap-6 lg:gap-8 items-start w-full min-w-0">
-            {activeCategories.map((category) => {
-              const catName = category.nameEn || (category as any).name;
-              return (
-                <Link
-                  key={category.id}
-                  to={getCategoryPath(category.slug || category.id)}
-                  id={`category-item-${category.id}`}
-                  className="group flex flex-col items-center text-center cursor-pointer min-w-0"
-                >
-                  {/* Circular Category Image */}
-                  <div className="w-full aspect-square max-w-[84px] min-[360px]:max-w-[100px] sm:max-w-[130px] md:max-w-[140px] lg:max-w-[165px] rounded-full overflow-hidden bg-[#FAF7F6]">
-                    <img
-                      src={category.image}
-                      alt={catName}
-                      loading="lazy"
-                      className="w-full h-full object-cover object-center rounded-full group-hover:scale-105 transition-transform duration-300 ease-out"
-                    />
-                  </div>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 sm:gap-6 lg:gap-8 items-start w-full min-w-0">
+              {activeCategories.map((category) => {
+                const catName = category.nameEn || (category as any).name;
+                return (
+                  <Link
+                    key={category.id}
+                    to={getCategoryPath(category.slug || category.id)}
+                    id={`category-item-${category.id}`}
+                    className="group flex flex-col items-center text-center cursor-pointer min-w-0 transition-transform duration-300 hover:-translate-y-1"
+                  >
+                    {/* Circular Category Image */}
+                    <div className="w-full aspect-square max-w-[84px] min-[360px]:max-w-[100px] sm:max-w-[130px] md:max-w-[140px] lg:max-w-[165px] rounded-full overflow-hidden bg-[#FAF7F6] ring-2 ring-transparent group-hover:ring-[#2D6A4F]/25 shadow-2xs group-hover:shadow-md transition-all duration-300">
+                      <img
+                        src={category.image}
+                        alt={catName}
+                        loading="lazy"
+                        className="w-full h-full object-cover object-center rounded-full group-hover:scale-108 transition-transform duration-500 ease-out"
+                      />
+                    </div>
 
-                  {/* Category Name & Pink Arrow */}
-                  <div className="mt-2 sm:mt-4 flex items-center justify-center gap-1 text-center min-w-0 w-full px-0.5">
-                    <span className="font-serif text-[11px] min-[360px]:text-xs sm:text-sm md:text-base font-semibold text-[#0F1E36] group-hover:text-[#2D6A4F] transition-colors leading-tight truncate">
-                      {catName}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="text-[#E58C9D] text-xs sm:text-sm md:text-base font-medium group-hover:translate-x-1 transition-transform inline-block flex-shrink-0"
-                    >
-                      →
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+                    {/* Category Name & Pink Arrow */}
+                    <div className="mt-2 sm:mt-4 flex items-center justify-center gap-1 text-center min-w-0 w-full px-0.5">
+                      <span className="font-serif text-[11px] min-[360px]:text-xs sm:text-sm md:text-base font-semibold text-[#0F1E36] group-hover:text-[#2D6A4F] transition-colors leading-tight truncate">
+                        {catName}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="text-[#E58C9D] text-xs sm:text-sm md:text-base font-medium group-hover:translate-x-1 transition-transform inline-block flex-shrink-0"
+                      >
+                        →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
 
       {/* Trust & Craftsmanship Highlights */}
       <section className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">

@@ -96,7 +96,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <div
       id={`product-card-${product.id}`}
       onClick={handleCardClick}
-      className="group relative flex flex-col bg-white rounded-xl border border-[#F0E4E6] overflow-hidden hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-300 w-full min-w-0 cursor-pointer"
+      className="group relative flex flex-col bg-white rounded-xl border border-[#F0E4E6] overflow-hidden hover:border-[#2D6A4F]/40 hover:shadow-lg sm:hover:-translate-y-1.5 transition-all duration-300 ease-out w-full min-w-0 cursor-pointer will-change-transform"
       onMouseEnter={() => {
         setIsHovered(true);
         if (product.images.length > 1) {
@@ -117,7 +117,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           src={product.images[currentImageIndex] || product.images[0]}
           alt={product.name}
           loading="lazy"
-          className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+          className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-108"
         />
 
         {/* Badges Container */}
@@ -157,19 +157,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               e.stopPropagation();
               onToggleWishlist(product);
             }}
-            className={`p-1.5 rounded-full backdrop-blur-xs transition-colors shadow-2xs cursor-pointer ${
+            className={`p-1.5 rounded-full backdrop-blur-xs transition-all duration-200 hover:scale-110 active:scale-90 shadow-2xs cursor-pointer ${
               isWishlisted
                 ? 'bg-white text-[#E58C9D]'
                 : 'bg-white/80 text-[#0F1E36] hover:bg-white hover:text-[#E58C9D]'
             }`}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-[#E58C9D]' : ''}`} />
+            <Heart className={`w-4 h-4 transition-transform duration-200 ${isWishlisted ? 'fill-[#E58C9D] scale-110' : ''}`} />
           </button>
         </div>
 
         {/* Quick View Button Hover Overlay on Desktop */}
-        <div className="absolute inset-x-2.5 bottom-2.5 hidden sm:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none group-hover:pointer-events-auto">
+        <div className="absolute inset-x-2.5 bottom-2.5 hidden sm:flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out z-10 pointer-events-none group-hover:pointer-events-auto">
           <button
             id={`quick-view-btn-${product.id}`}
             onClick={(e) => {

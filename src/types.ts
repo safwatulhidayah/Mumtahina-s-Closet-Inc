@@ -14,6 +14,7 @@ export interface Product {
   reviewCount: number;
   images: string[];
   colors: { name: string; hex: string }[];
+  colorNames?: string[];
   sizes: string[];
   description: string;
   features: string[];

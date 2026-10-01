@@ -10,6 +10,8 @@ import {
   Ruler,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Share2,
   Zap,
 } from 'lucide-react';
@@ -42,7 +44,7 @@ export const ProductDetailsPage: React.FC = () => {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || 'Standard');
-  const selectedColor = product?.colors?.[0]?.name || 'Original';
+  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || 'Original');
   const [quantity, setQuantity] = useState(1);
 
   // Accordion toggles
@@ -67,6 +69,7 @@ export const ProductDetailsPage: React.FC = () => {
   useEffect(() => {
     setActiveImageIndex(0);
     setSelectedSize(product?.sizes?.[0] || 'Standard');
+    setSelectedColor(product?.colors?.[0]?.name || 'Original');
     setQuantity(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product?.id]);
@@ -204,12 +207,55 @@ export const ProductDetailsPage: React.FC = () => {
           </div>
 
           {/* Large Main Showcase Image */}
-          <div className="relative flex-1 rounded-2xl sm:rounded-3xl overflow-hidden bg-[#FAF7F6] border border-[#F0E4E6] aspect-[3/4] sm:aspect-auto sm:min-h-[580px] w-full min-w-0">
+          <div className="relative flex-1 rounded-2xl sm:rounded-3xl overflow-hidden bg-[#FAF7F6] border border-[#F0E4E6] aspect-[3/4] sm:aspect-auto sm:min-h-[580px] w-full min-w-0 group">
             <img
               src={product.images[activeImageIndex] || product.images[0]}
               alt={product.name}
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-top transition-all duration-300"
             />
+
+            {/* Gallery Carousel Arrow Controls */}
+            {product.images && product.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveImageIndex(
+                      (prev) => (prev - 1 + product.images.length) % product.images.length
+                    )
+                  }
+                  className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/85 hover:bg-white text-[#0F1E36] shadow-md backdrop-blur-xs flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-105 active:scale-95 transition-all z-10 cursor-pointer"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#0F1E36]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveImageIndex((prev) => (prev + 1) % product.images.length)
+                  }
+                  className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/85 hover:bg-white text-[#0F1E36] shadow-md backdrop-blur-xs flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-105 active:scale-95 transition-all z-10 cursor-pointer"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#0F1E36]" />
+                </button>
+
+                {/* Mobile indicators */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex sm:hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xs z-10">
+                  {product.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                        activeImageIndex === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/60'
+                      }`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Badges */}
             <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -320,6 +366,44 @@ export const ProductDetailsPage: React.FC = () => {
               </span>
             )}
           </div>
+
+          {/* Color Selection */}
+          {product.colors && product.colors.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0F1E36]">
+                  Color: <strong className="text-[#2D6A4F]">{selectedColor}</strong>
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  {product.colors.length} {product.colors.length === 1 ? 'Option' : 'Options'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {product.colors.map((c) => {
+                  const isSelected = selectedColor === c.name;
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => setSelectedColor(c.name)}
+                      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#0F1E36] text-white border-[#0F1E36] shadow-xs'
+                          : 'bg-white text-slate-700 border-[#EADBDE] hover:border-[#2D6A4F]'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-2xs flex-shrink-0"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                      <span>{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Size Selection & Sizing Guide Modal Link */}
           {product.sizes && product.sizes.length > 0 && (

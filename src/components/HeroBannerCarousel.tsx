@@ -5,24 +5,29 @@ import { motion, AnimatePresence } from 'motion/react';
 export interface HeroSlide {
   id: number;
   imageUrl: string;
+  originalPhototourlUrl?: string;
+  fallbackUrl?: string;
   alt: string;
 }
 
 export const HERO_SLIDES: HeroSlide[] = [
   {
     id: 1,
-    imageUrl: 'https://cdn.phototourl.com/free/2026-09-12-4a807a12-0e05-4f56-a9af-404e09fd946b.png',
-    alt: 'Mumtahina’s Closet Inc - Promotional Banner 1',
+    imageUrl: 'https://cdn.phototourl.com/member/2026-10-01-6b83008d-38b6-4ceb-af73-978209ace660.png',
+    fallbackUrl: '/assets/cover-1.png',
+    alt: 'Mumtahina’s Closet Inc - Hero Cover 1',
   },
   {
     id: 2,
-    imageUrl: 'https://cdn.phototourl.com/free/2026-09-12-75aad549-502c-4463-80a2-3abc22fac242.png',
-    alt: 'Mumtahina’s Closet Inc - Promotional Banner 2',
+    imageUrl: 'https://cdn.phototourl.com/member/2026-10-01-e4704661-1758-43ce-8c1c-8a6d10f67028.png',
+    fallbackUrl: '/assets/cover-2.png',
+    alt: 'Mumtahina’s Closet Inc - Hero Cover 2',
   },
   {
     id: 3,
-    imageUrl: 'https://cdn.phototourl.com/free/2026-09-12-1da5544d-0292-417f-8320-ab11f1e329b0.png',
-    alt: 'Mumtahina’s Closet Inc - Promotional Banner 3',
+    imageUrl: 'https://cdn.phototourl.com/member/2026-10-01-d9256779-02c1-409a-b583-2dc491cac0d4.png',
+    fallbackUrl: '/assets/cover-3.png',
+    alt: 'Mumtahina’s Closet Inc - Hero Cover 3',
   },
 ];
 
@@ -34,6 +39,28 @@ export const HeroBannerCarousel: React.FC<HeroBannerCarouselProps> = ({ onNaviga
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<number>(1);
   const [isPaused, setIsPaused] = useState(false);
+  const [slideSources, setSlideSources] = useState<Record<number, string>>(() => {
+    const initial: Record<number, string> = {};
+    HERO_SLIDES.forEach((slide) => {
+      initial[slide.id] = slide.imageUrl;
+    });
+    return initial;
+  });
+  const [failedSlides, setFailedSlides] = useState<Record<number, boolean>>({});
+
+  const handleImageError = (slideId: number, fallbackUrl?: string) => {
+    if (fallbackUrl && slideSources[slideId] !== fallbackUrl) {
+      setSlideSources((prev) => ({
+        ...prev,
+        [slideId]: fallbackUrl,
+      }));
+    } else {
+      setFailedSlides((prev) => ({
+        ...prev,
+        [slideId]: true,
+      }));
+    }
+  };
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -95,15 +122,15 @@ export const HeroBannerCarousel: React.FC<HeroBannerCarouselProps> = ({ onNaviga
 
   const slideVariants = {
     enter: (dir: number) => ({
-      x: dir > 0 ? '100%' : '-100%',
+      x: dir > 0 ? 30 : -30,
       opacity: 0,
     }),
     center: {
-      x: '0%',
+      x: 0,
       opacity: 1,
     },
     exit: (dir: number) => ({
-      x: dir > 0 ? '-100%' : '100%',
+      x: dir > 0 ? -30 : 30,
       opacity: 0,
     }),
   };
@@ -148,19 +175,31 @@ export const HeroBannerCarousel: React.FC<HeroBannerCarouselProps> = ({ onNaviga
                 animate="center"
                 exit="exit"
                 transition={{
-                  x: { type: 'spring', stiffness: 260, damping: 30 },
-                  opacity: { duration: 0.28 },
+                  x: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+                  opacity: { duration: 0.45, ease: 'easeInOut' },
                 }}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full bg-[#FAF0F2]"
               >
-                <img
-                  src={currentSlide.imageUrl}
-                  alt={currentSlide.alt}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-center"
-                  loading={currentIndex === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                />
+                {!failedSlides[currentSlide.id] ? (
+                  <img
+                    src={slideSources[currentSlide.id] || currentSlide.imageUrl}
+                    alt={currentSlide.alt}
+                    onError={() => handleImageError(currentSlide.id, currentSlide.fallbackUrl)}
+                    className="w-full h-full object-cover object-center select-none"
+                    loading={currentIndex === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[#FAF0F2]">
+                    <img
+                      src={currentSlide.fallbackUrl || currentSlide.imageUrl}
+                      alt=""
+                      className="w-full h-full object-cover object-center select-none"
+                      draggable={false}
+                    />
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>

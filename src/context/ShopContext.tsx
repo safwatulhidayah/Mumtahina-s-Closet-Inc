@@ -36,6 +36,7 @@ import {
 } from '../types';
 import { PRODUCTS, INITIAL_ORDERS } from '../data/mockData';
 import { isAuthorizedAdmin } from '../lib/adminAuth';
+import { parseColorsInput } from '../lib/colorUtils';
 
 export type { UserProfile };
 
@@ -436,7 +437,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 rating: typeof data.rating === 'number' ? data.rating : 5,
                 reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : 0,
                 images: Array.isArray(data.images) && data.images.length > 0 ? data.images : [data.image || 'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?auto=format&fit=crop&w=800&q=80'],
-                colors: Array.isArray(data.colors) ? data.colors : [{ name: 'Original', hex: '#0F1E36' }],
+                colors: (() => {
+                  const parsed = parseColorsInput(data.colors || data.colorNames);
+                  return parsed.length > 0 ? parsed : [{ name: 'Original', hex: '#0F1E36' }];
+                })(),
+                colorNames: Array.isArray(data.colorNames)
+                  ? data.colorNames
+                  : (parseColorsInput(data.colors || data.colorNames).map((c) => c.name)),
                 sizes: Array.isArray(data.sizes) ? data.sizes : ['Standard'],
                 description: data.description || '',
                 features: Array.isArray(data.features) ? data.features : [],
@@ -1539,6 +1546,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await setDoc(doc(db, 'products', newProduct.id), {
         ...newProduct,
+        colorNames: (newProduct.colors || []).map((c) => c.name),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -1556,6 +1564,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         doc(db, 'products', updatedProduct.id),
         {
           ...updatedProduct,
+          colorNames: (updatedProduct.colors || []).map((c) => c.name),
           updatedAt: new Date().toISOString(),
         },
         { merge: true }

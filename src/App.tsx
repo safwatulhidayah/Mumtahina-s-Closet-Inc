@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { ShopProvider, useShop } from './context/ShopContext';
 
 // Core Components
@@ -60,117 +61,128 @@ const AppLayout: React.FC = () => {
 
       {/* Main Multi-Page Route Content */}
       <main className={`flex-1 w-full max-w-full min-w-0 ${!isAdminRoute ? 'pb-16 md:pb-0' : ''}`}>
-        <Routes>
-          {/* 1. HOME PAGE */}
-          <Route path="/" element={<HomePage />} />
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full flex-1 flex flex-col min-w-0"
+          >
+            <Routes location={location}>
+              {/* 1. HOME PAGE */}
+              <Route path="/" element={<HomePage />} />
 
-          {/* 2. SHOP / ALL PRODUCTS */}
-          <Route path="/shop" element={<ShopPage />} />
+              {/* 2. SHOP / ALL PRODUCTS */}
+              <Route path="/shop" element={<ShopPage />} />
 
-          {/* 3-8. CATEGORIES */}
-          <Route path="/category/:categorySlug" element={<ShopPage />} />
+              {/* 3-8. CATEGORIES */}
+              <Route path="/category/:categorySlug" element={<ShopPage />} />
 
-          {/* 9-10. NEW ARRIVALS & BEST SELLERS */}
-          <Route path="/new-arrivals" element={<ShopPage isNewArrivalsOnly />} />
-          <Route path="/best-sellers" element={<ShopPage isBestSellersOnly />} />
+              {/* 9-10. NEW ARRIVALS & BEST SELLERS */}
+              <Route path="/new-arrivals" element={<ShopPage isNewArrivalsOnly />} />
+              <Route path="/best-sellers" element={<ShopPage isBestSellersOnly />} />
 
-          {/* 11. PRODUCT DETAILS */}
-          <Route path="/product/:productId" element={<ProductDetailsPage />} />
+              {/* 11. PRODUCT DETAILS */}
+              <Route path="/product/:productId" element={<ProductDetailsPage />} />
 
-          {/* 12. SEARCH RESULTS */}
-          <Route path="/search" element={<SearchPage />} />
+              {/* 12. SEARCH RESULTS */}
+              <Route path="/search" element={<SearchPage />} />
 
-          {/* 13. WISHLIST */}
-          <Route
-            path="/wishlist"
-            element={
-              <ProtectedRoute>
-                <WishlistPage />
-              </ProtectedRoute>
-            }
-          />
+              {/* 13. WISHLIST */}
+              <Route
+                path="/wishlist"
+                element={
+                  <ProtectedRoute>
+                    <WishlistPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* 14. CART */}
-          <Route path="/cart" element={<CartPage />} />
+              {/* 14. CART */}
+              <Route path="/cart" element={<CartPage />} />
 
-          {/* 15. CHECKOUT */}
-          <Route
-            path="/checkout"
-            element={
-              <ProtectedRoute>
-                <CheckoutPage />
-              </ProtectedRoute>
-            }
-          />
+              {/* 15. CHECKOUT */}
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute>
+                    <CheckoutPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* 16. USER ACCOUNT / PROFILE */}
-          <Route
-            path="/account"
-            element={
-              <ProtectedRoute>
-                <AccountPage />
-              </ProtectedRoute>
-            }
-          />
+              {/* 16. USER ACCOUNT / PROFILE */}
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <AccountPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* 17. ORDER HISTORY / TRACKING */}
-          <Route
-            path="/account/orders"
-            element={
-              <ProtectedRoute>
-                <OrderHistoryPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/account/orders/:orderId"
-            element={
-              <ProtectedRoute>
-                <OrderHistoryPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/orders"
-            element={
-              <ProtectedRoute>
-                <OrderHistoryPage />
-              </ProtectedRoute>
-            }
-          />
+              {/* 17. ORDER HISTORY / TRACKING */}
+              <Route
+                path="/account/orders"
+                element={
+                  <ProtectedRoute>
+                    <OrderHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account/orders/:orderId"
+                element={
+                  <ProtectedRoute>
+                    <OrderHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/orders"
+                element={
+                  <ProtectedRoute>
+                    <OrderHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* 18-19. LOGIN & REGISTER */}
-          <Route path="/login" element={<AuthPage initialMode="login" />} />
-          <Route path="/admin/login" element={<AuthPage initialMode="login" />} />
-          <Route path="/register" element={<AuthPage initialMode="register" />} />
-          <Route path="/forgot-password" element={<AuthPage initialMode="forgot" />} />
+              {/* 18-19. LOGIN & REGISTER */}
+              <Route path="/login" element={<AuthPage initialMode="login" />} />
+              <Route path="/admin/login" element={<AuthPage initialMode="login" />} />
+              <Route path="/register" element={<AuthPage initialMode="register" />} />
+              <Route path="/forgot-password" element={<AuthPage initialMode="forgot" />} />
 
-          {/* 20. STATIC PAGES */}
-          <Route path="/about" element={<StaticPages page="about" />} />
-          <Route path="/contact" element={<StaticPages page="contact" />} />
-          <Route path="/faq" element={<StaticPages page="faq" />} />
-          <Route path="/shipping-policy" element={<StaticPages page="shipping" />} />
-          <Route path="/shipping" element={<StaticPages page="shipping" />} />
-          <Route path="/return-policy" element={<StaticPages page="returns" />} />
-          <Route path="/returns" element={<StaticPages page="returns" />} />
-          <Route path="/privacy-policy" element={<StaticPages page="privacy" />} />
-          <Route path="/privacy" element={<StaticPages page="privacy" />} />
-          <Route path="/terms-of-service" element={<StaticPages page="terms" />} />
-          <Route path="/terms" element={<StaticPages page="terms" />} />
+              {/* 20. STATIC PAGES */}
+              <Route path="/about" element={<StaticPages page="about" />} />
+              <Route path="/contact" element={<StaticPages page="contact" />} />
+              <Route path="/faq" element={<StaticPages page="faq" />} />
+              <Route path="/shipping-policy" element={<StaticPages page="shipping" />} />
+              <Route path="/shipping" element={<StaticPages page="shipping" />} />
+              <Route path="/return-policy" element={<StaticPages page="returns" />} />
+              <Route path="/returns" element={<StaticPages page="returns" />} />
+              <Route path="/privacy-policy" element={<StaticPages page="privacy" />} />
+              <Route path="/privacy" element={<StaticPages page="privacy" />} />
+              <Route path="/terms-of-service" element={<StaticPages page="terms" />} />
+              <Route path="/terms" element={<StaticPages page="terms" />} />
 
-          {/* 21. STORE ADMINISTRATION PANEL */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
-            }
-          />
+              {/* 21. STORE ADMINISTRATION PANEL */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                }
+              />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Global Storefront Footer (storefront only) */}

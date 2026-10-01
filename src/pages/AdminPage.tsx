@@ -39,12 +39,16 @@ import {
   Database,
   Copy,
   Check,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Product, Order, Inquiry, CategoryItem, PaymentStatus, OrderStatus } from '../types';
 import { AUTHORIZED_ADMIN_EMAILS } from '../lib/adminAuth';
 import { BrandLogo } from '../components/BrandLogo';
 import { ZelleLogo } from '../components/ZelleLogo';
+import { uploadMultipleProductImages } from '../lib/storage';
+import { getColorHex, formatColorName } from '../lib/colorUtils';
 
 type AdminTab =
   | 'dashboard'
@@ -919,7 +923,20 @@ export const AdminPage: React.FC = () => {
                               />
                               <div>
                                 <span className="font-bold text-[#0F1E36] block text-xs">{p.name}</span>
-                                <span className="text-[10px] text-slate-400 font-mono">ID: {p.id}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                  <span className="text-[10px] text-slate-400 font-mono">ID: {p.id}</span>
+                                  {p.images && p.images.length > 1 && (
+                                    <span className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                      {p.images.length} photos
+                                    </span>
+                                  )}
+                                  {p.colors && p.colors.length > 0 && (
+                                    <span className="text-[9px] text-slate-500 font-medium">
+                                      • {p.colors.map((c) => c.name).slice(0, 2).join(', ')}
+                                      {p.colors.length > 2 ? ` +${p.colors.length - 2}` : ''}
+                                    </span>
+                                  )}
+                                </div>
                                 {p.isBestSeller && (
                                   <span className="inline-block px-1.5 py-0.5 text-[9px] font-bold bg-[#FAF0F2] text-[#E58C9D] rounded-sm mt-0.5">
                                     Best Seller
@@ -2283,6 +2300,21 @@ interface ProductFormModalProps {
   onSave: (prod: Product) => void;
 }
 
+const COMMON_COLOR_SUGGESTIONS = [
+  'Dusty Rose Pink',
+  'Black',
+  'White',
+  'Navy Blue',
+  'Emerald Green',
+  'Sage Green',
+  'Champagne Gold',
+  'Burgundy',
+  'Mocha Brown',
+  'Slate Grey',
+  'Olive Green',
+  'Plum Purple',
+];
+
 const ProductFormModal: React.FC<ProductFormModalProps> = ({
   initialProduct,
   onClose,
@@ -2297,19 +2329,150 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [stockCount, setStockCount] = useState(
     initialProduct?.stock !== undefined ? initialProduct.stock.toString() : '20'
   );
-  const [image, setImage] = useState(
-    initialProduct?.images?.[0] ||
-      'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?auto=format&fit=crop&w=800&q=80'
-  );
+
+  // 1. Multiple Product Images State
+  const [images, setImages] = useState<string[]>(() => {
+    if (initialProduct?.images && initialProduct.images.length > 0) {
+      return [...initialProduct.images];
+    }
+    return [
+      'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?auto=format&fit=crop&w=800&q=80',
+    ];
+  });
+  const [urlInput, setUrlInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  // 2. Product Color Names State (Text based, no color image upload required)
+  const [colorNames, setColorNames] = useState<string[]>(() => {
+    if (initialProduct?.colorNames && initialProduct.colorNames.length > 0) {
+      return [...initialProduct.colorNames];
+    }
+    if (initialProduct?.colors && initialProduct.colors.length > 0) {
+      return initialProduct.colors.map((c) => c.name);
+    }
+    return ['Dusty Rose Pink', 'Black', 'White', 'Navy Blue'];
+  });
+  const [colorTextInput, setColorTextInput] = useState('');
+
   const [fabric, setFabric] = useState(initialProduct?.fabric || 'Nida Crepe');
   const [description, setDescription] = useState(
     initialProduct?.description || 'Exquisite modest silhouette handcrafted with premium fabric.'
   );
   const [isFeatured, setIsFeatured] = useState(initialProduct?.isBestSeller || false);
 
+  // File Upload Handler (Supports multiple images simultaneously)
+  const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadStatus(`Preparing to upload ${files.length} ${files.length === 1 ? 'image' : 'images'}...`);
+
+    const fileList = Array.from(files) as File[];
+    const prodId = initialProduct?.productId || initialProduct?.id || `mc-${Date.now()}`;
+
+    try {
+      const uploadedUrls = await uploadMultipleProductImages(
+        fileList,
+        prodId,
+        (completed, total) => {
+          setUploadStatus(`Uploading image ${completed} of ${total}...`);
+        }
+      );
+
+      if (uploadedUrls.length > 0) {
+        setImages((prev) => [...prev, ...uploadedUrls]);
+        setUploadStatus(`Successfully added ${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'image' : 'images'}!`);
+        setTimeout(() => setUploadStatus(''), 3000);
+      }
+    } catch (err) {
+      console.error('Multiple image upload error:', err);
+      setUploadStatus('Upload encountered an issue. Please try again.');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // Add Image via Direct URL or Comma/Newline-separated URLs
+  const handleAddUrlImage = () => {
+    if (!urlInput.trim()) return;
+    const splitUrls = urlInput
+      .split(/[\n,]+/)
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0);
+
+    setImages((prev) => [...prev, ...splitUrls]);
+    setUrlInput('');
+  };
+
+  // Set an image as the Primary Product Image (moves it to index 0)
+  const handleSetPrimaryImage = (index: number) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const target = prev[index];
+      const rest = prev.filter((_, i) => i !== index);
+      return [target, ...rest];
+    });
+  };
+
+  // Remove an image from the list
+  const handleRemoveImage = (index: number) => {
+    if (images.length <= 1) {
+      alert('A product must have at least one product image.');
+      return;
+    }
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Add Color Name (supports comma-separated text)
+  const handleAddColorName = (nameToAdd?: string) => {
+    const raw = nameToAdd !== undefined ? nameToAdd : colorTextInput;
+    if (!raw.trim()) return;
+
+    const names = raw
+      .split(/[,;\n]+/)
+      .map((n) => formatColorName(n))
+      .filter((n) => n.length > 0);
+
+    setColorNames((prev) => {
+      const next = [...prev];
+      for (const n of names) {
+        if (!next.some((existing) => existing.toLowerCase() === n.toLowerCase())) {
+          next.push(n);
+        }
+      }
+      return next;
+    });
+
+    if (nameToAdd === undefined) {
+      setColorTextInput('');
+    }
+  };
+
+  // Remove Color Name
+  const handleRemoveColorName = (index: number) => {
+    setColorNames((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (images.length === 0) {
+      alert('Please upload or provide at least one product image.');
+      return;
+    }
+
     const prodId = initialProduct?.productId || initialProduct?.id || `mc-${Date.now()}`;
+    const formattedColors =
+      colorNames.length > 0
+        ? colorNames.map((nameStr) => ({
+            name: nameStr,
+            hex: getColorHex(nameStr),
+          }))
+        : [{ name: 'Dusty Rose Pink', hex: '#DCAEAE' }];
+
     const prod: Product = {
       id: prodId,
       productId: prodId,
@@ -2320,7 +2483,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       price: parseFloat(price) || 0,
       originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
       stock: parseInt(stockCount, 10) || 0,
-      images: [image],
+      images, // Multiple images saved with primary image at index 0
       fabric,
       material: fabric,
       dimensions: initialProduct?.dimensions,
@@ -2330,45 +2493,56 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       rating: initialProduct?.rating || 5.0,
       reviewCount: initialProduct?.reviewCount || 12,
       sizes: initialProduct?.sizes || ['S (52")', 'M (54")', 'L (56")', 'XL (58")'],
-      colors: initialProduct?.colors || [{ name: 'Midnight Navy', hex: '#0F1E36' }],
+      colors: formattedColors,
+      colorNames: formattedColors.map((c) => c.name),
       features: initialProduct?.features || ['Premium modest silhouette', 'Hand-finished hems'],
       careInstructions: initialProduct?.careInstructions || 'Dry clean or gentle hand wash cold.',
     };
+
     onSave(prod);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-[#F0E4E6] space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-[#F0E4E6] space-y-4 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-[#F0E4E6]">
-          <h3 className="font-serif text-lg font-bold text-[#0F1E36]">
-            {initialProduct ? 'Edit Product' : 'Add New Product'}
-          </h3>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-[#0F1E36]">
+          <div>
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-[#0F1E36]">
+              {initialProduct ? 'Edit Product' : 'Add New Product'}
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Manage product details, multiple gallery images, and color names.
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-[#0F1E36] rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
+          {/* Product Name */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Product Name</label>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Product Name <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Royal Embroidered Velvet Abaya"
-              className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+              className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Category & Fabric */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] bg-white"
+                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] bg-white text-xs"
               >
                 <option value="Abayas">Abayas</option>
                 <option value="Hijabs">Hijabs</option>
@@ -2386,15 +2560,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 type="text"
                 value={fabric}
                 onChange={(e) => setFabric(e.target.value)}
-                placeholder="e.g. Nida, Silk, Chiffon"
-                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+                placeholder="e.g. Nida, Raw Silk, Chiffon"
+                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
               />
             </div>
           </div>
 
+          {/* Price, Old Price & Stock Units */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Price ($)</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Price ($) <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -2402,7 +2579,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="129.99"
-                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
               />
             </div>
             <div>
@@ -2413,70 +2590,320 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 value={originalPrice}
                 onChange={(e) => setOriginalPrice(e.target.value)}
                 placeholder="159.99"
-                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Stock Units</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Stock Units <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="number"
                 required
                 value={stockCount}
                 onChange={(e) => setStockCount(e.target.value)}
                 placeholder="20"
-                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+                className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Image URL</label>
-            <input
-              type="url"
-              required
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
-            />
+          {/* SECTION 1: Product Colors (Text-based, NO separate image required) */}
+          <div className="p-4 rounded-2xl bg-[#FAF7F6] border border-[#F0E4E6] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <div>
+                <label className="block font-bold text-[#0F1E36] text-xs">
+                  Product Colors (Text Names)
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Enter color names as text (e.g. Dusty Rose Pink, Black, White). No separate color image upload is required.
+                </p>
+              </div>
+              <span className="text-[11px] font-semibold text-[#2D6A4F] self-start sm:self-auto">
+                {colorNames.length} {colorNames.length === 1 ? 'Color' : 'Colors'} Added
+              </span>
+            </div>
+
+            {/* Color Text Input with Add Button */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={colorTextInput}
+                onChange={(e) => setColorTextInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddColorName();
+                  }
+                }}
+                placeholder="e.g. Dusty Rose Pink, Black, White, Navy Blue"
+                className="flex-1 p-2.5 bg-white border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddColorName()}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#2D6A4F] hover:bg-[#1B4332] text-white rounded-xl font-semibold shadow-xs transition-colors cursor-pointer text-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Color</span>
+              </button>
+            </div>
+
+            {/* Quick Suggestions Chips */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Quick Suggestions:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {COMMON_COLOR_SUGGESTIONS.map((suggestion) => {
+                  const alreadyAdded = colorNames.some(
+                    (c) => c.toLowerCase() === suggestion.toLowerCase()
+                  );
+                  return (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      disabled={alreadyAdded}
+                      onClick={() => handleAddColorName(suggestion)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                        alreadyAdded
+                          ? 'bg-slate-200/60 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-white text-slate-700 border border-[#E2D2D5] hover:border-[#2D6A4F] hover:text-[#2D6A4F] cursor-pointer'
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-black/10 flex-shrink-0"
+                        style={{ backgroundColor: getColorHex(suggestion) }}
+                      />
+                      <span>{suggestion}</span>
+                      {!alreadyAdded && <Plus className="w-2.5 h-2.5 text-slate-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Active Colors Tag List */}
+            {colorNames.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1 border-t border-[#F0E4E6]">
+                {colorNames.map((colorName, idx) => (
+                  <div
+                    key={`${colorName}-${idx}`}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E2D2D5] rounded-xl text-xs font-semibold text-[#0F1E36] shadow-2xs group"
+                  >
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-2xs flex-shrink-0"
+                      style={{ backgroundColor: getColorHex(colorName) }}
+                    />
+                    <span>{colorName}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveColorName(idx)}
+                      className="p-0.5 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
+                      title={`Remove ${colorName}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-amber-600 font-medium pt-1">
+                Please enter at least one color name (e.g. Dusty Rose Pink).
+              </p>
+            )}
           </div>
 
+          {/* SECTION 2: Multiple Product Images */}
+          <div className="p-4 rounded-2xl bg-[#FAF7F6] border border-[#F0E4E6] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <div>
+                <label className="block font-bold text-[#0F1E36] text-xs">
+                  Multiple Product Images <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Upload multiple photos at once. Choose which image will serve as the Primary Image.
+                </p>
+              </div>
+              <span className="text-[11px] font-semibold text-[#2D6A4F] self-start sm:self-auto">
+                {images.length} {images.length === 1 ? 'Image' : 'Images'} in Gallery
+              </span>
+            </div>
+
+            {/* Upload Multiple Images Button & File Zone */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label
+                htmlFor="multi-image-file-input"
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-[#FAF0F2] text-[#2D6A4F] border-2 border-dashed border-[#2D6A4F]/40 hover:border-[#2D6A4F] rounded-2xl font-bold text-xs shadow-2xs transition-all cursor-pointer ${
+                  isUploading ? 'opacity-50 pointer-events-none' : ''
+                }`}
+              >
+                <Upload className="w-4 h-4 flex-shrink-0 text-[#2D6A4F]" />
+                <span>Upload Multiple Images</span>
+                <input
+                  id="multi-image-file-input"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleMultipleImageUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+              </label>
+
+              {/* Direct URL Input Option */}
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddUrlImage();
+                    }
+                  }}
+                  placeholder="Or paste image URL..."
+                  className="flex-1 p-2.5 bg-white border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddUrlImage}
+                  className="px-3 py-2.5 bg-white border border-[#E2D2D5] hover:border-[#2D6A4F] text-[#0F1E36] hover:text-[#2D6A4F] rounded-xl font-semibold shadow-2xs transition-colors cursor-pointer text-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Upload status / progress message */}
+            {uploadStatus && (
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-[#EBF5F0] border border-[#2D6A4F]/20 text-[#2D6A4F] text-[11px] font-semibold">
+                <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? 'animate-spin' : ''}`} />
+                <span>{uploadStatus}</span>
+              </div>
+            )}
+
+            {/* Image Previews Grid with Primary Image Selection and Removal */}
+            {images.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-[#F0E4E6]">
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Image Previews (Click "Primary" to feature as main card image)</span>
+                  <span className="font-semibold text-[#0F1E36]">★ = Primary Image</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                  {images.map((imgUrl, idx) => {
+                    const isPrimary = idx === 0;
+                    return (
+                      <div
+                        key={`${imgUrl}-${idx}`}
+                        className={`relative group rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all flex flex-col ${
+                          isPrimary
+                            ? 'border-[#2D6A4F] ring-2 ring-[#2D6A4F]/20'
+                            : 'border-[#F0E4E6] hover:border-slate-300'
+                        }`}
+                      >
+                        {/* Thumbnail View */}
+                        <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
+                          <img
+                            src={imgUrl}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover object-top"
+                          />
+
+                          {/* Primary Badge */}
+                          {isPrimary ? (
+                            <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#2D6A4F] text-white text-[10px] font-bold shadow-xs">
+                              <Star className="w-2.5 h-2.5 fill-white" />
+                              <span>Primary</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryImage(idx)}
+                              className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 hover:bg-[#2D6A4F] text-white text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-xs"
+                              title="Make this the Primary Image"
+                            >
+                              <Star className="w-2.5 h-2.5" />
+                              <span>Set Primary</span>
+                            </button>
+                          )}
+
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="absolute top-1.5 right-1.5 p-1 rounded-md bg-white/90 hover:bg-rose-600 text-slate-600 hover:text-white shadow-sm transition-all cursor-pointer"
+                            title="Remove image"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Controls underneath thumbnail */}
+                        <div className="p-1.5 bg-slate-50 flex items-center justify-between text-[10px] text-slate-500">
+                          <span className="font-semibold text-slate-600 truncate max-w-[60px]">
+                            #{idx + 1} {isPrimary ? '(Primary)' : ''}
+                          </span>
+                          {!isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryImage(idx)}
+                              className="text-[#2D6A4F] hover:underline font-semibold cursor-pointer"
+                            >
+                              Make Primary
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">Description</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F]"
+              className="w-full p-2.5 border border-[#E2D2D5] rounded-xl focus:outline-hidden focus:border-[#2D6A4F] text-xs"
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-2">
+          {/* Featured checkbox */}
+          <div className="flex items-center gap-2 pt-1">
             <input
               type="checkbox"
               id="isFeatured"
               checked={isFeatured}
               onChange={(e) => setIsFeatured(e.target.checked)}
-              className="w-4 h-4 text-[#2D6A4F] rounded-md focus:ring-0"
+              className="w-4 h-4 text-[#2D6A4F] rounded-md focus:ring-0 cursor-pointer"
             />
             <label htmlFor="isFeatured" className="font-semibold text-slate-700 cursor-pointer">
-              Feature on Homepage Showcase
+              Feature on Homepage Showcase (Best Seller)
             </label>
           </div>
 
+          {/* Form Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-[#F0E4E6]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold cursor-pointer"
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold cursor-pointer text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#2D6A4F] hover:bg-[#1B4332] text-white rounded-xl font-semibold shadow-xs cursor-pointer"
+              disabled={isUploading}
+              className="px-5 py-2.5 bg-[#2D6A4F] hover:bg-[#1B4332] text-white rounded-xl font-semibold shadow-xs cursor-pointer text-xs transition-colors disabled:opacity-50"
             >
-              {initialProduct ? 'Save Changes' : 'Create Product'}
+              {initialProduct ? 'Save Product Changes' : 'Create Product'}
             </button>
           </div>
         </form>
