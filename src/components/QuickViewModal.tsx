@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { X, Star, ShoppingBag, Heart, Check, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { Product } from '../types';
 
@@ -23,11 +24,14 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   onToggleWishlist,
 }) => {
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('Standard');
   const [selectedColor, setSelectedColor] = useState('Original');
   const [quantity, setQuantity] = useState(1);
+  const [isAddedFeedback, setIsAddedFeedback] = useState(false);
+  const [justHearted, setJustHearted] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -45,8 +49,12 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const productColors = product.colors || [];
 
   const handleAddToCart = () => {
+    setIsAddedFeedback(true);
     onAddToCart(product, selectedSize, selectedColor, quantity);
-    onClose();
+    setTimeout(() => {
+      setIsAddedFeedback(false);
+      onClose();
+    }, 450);
   };
 
   const handleViewDetails = () => {
@@ -85,12 +93,22 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Image Gallery Column */}
           <div className="bg-[#FAF7F6] p-6 flex flex-col justify-between">
-            <div className="aspect-[3/4] w-full rounded-xl overflow-hidden bg-white shadow-xs">
-              <img
-                src={product.images[selectedImage] || product.images[0]}
-                alt={product.name}
-                className="w-full h-full object-cover object-center"
-              />
+            <div className="aspect-[3/4] w-full rounded-xl overflow-hidden bg-white shadow-xs relative">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.img
+                  key={selectedImage}
+                  src={product.images[selectedImage] || product.images[0]}
+                  alt={product.name}
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0.7, scale: 0.99 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0.75 }}
+                  transition={{
+                    duration: shouldReduceMotion ? 0.05 : 0.25,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="w-full h-full object-cover object-center will-change-transform"
+                />
+              </AnimatePresence>
             </div>
 
             {product.images.length > 1 && (
@@ -99,8 +117,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`w-14 h-18 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
-                      selectedImage === idx ? 'border-[#2D6A4F] ring-1 ring-[#2D6A4F]' : 'border-transparent opacity-70 hover:opacity-100'
+                    className={`w-14 h-18 rounded-lg overflow-hidden border-2 transition-all duration-200 flex-shrink-0 cursor-pointer ${
+                      selectedImage === idx
+                        ? 'border-[#2D6A4F] ring-1 ring-[#2D6A4F] scale-102'
+                        : 'border-transparent opacity-70 hover:opacity-100 hover:scale-102'
                     }`}
                   >
                     <img src={img} alt="" className="w-full h-full object-cover" />
@@ -231,22 +251,39 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
               <div className="flex gap-2">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#2D6A4F] hover:bg-[#1B4332] text-white rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#2D6A4F] hover:bg-[#1B4332] active:scale-[0.98] text-white rounded-xl text-sm font-semibold shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  Add to Cart • ${(product.price * quantity).toFixed(2)}
+                  {isAddedFeedback ? (
+                    <>
+                      <Check className="w-4 h-4 animate-in zoom-in-95 text-emerald-200" />
+                      <span>Added to Cart!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Cart • ${(product.price * quantity).toFixed(2)}</span>
+                    </>
+                  )}
                 </button>
 
                 <button
-                  onClick={() => onToggleWishlist(product)}
-                  className={`p-3 rounded-xl border transition-colors ${
+                  onClick={() => {
+                    setJustHearted(true);
+                    setTimeout(() => setJustHearted(false), 500);
+                    onToggleWishlist(product);
+                  }}
+                  className={`p-3 rounded-xl border transition-all duration-200 active:scale-95 cursor-pointer ${
                     isWishlisted
                       ? 'border-[#E58C9D] bg-[#FDF0F2] text-[#E58C9D]'
                       : 'border-[#E2D5D7] hover:border-[#E58C9D] text-slate-600 hover:text-[#E58C9D]'
                   }`}
                   aria-label="Wishlist"
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-[#E58C9D]' : ''}`} />
+                  <Heart
+                    className={`w-5 h-5 transition-transform duration-200 ${
+                      isWishlisted ? 'fill-[#E58C9D]' : ''
+                    } ${justHearted ? 'animate-heart-pop' : ''}`}
+                  />
                 </button>
               </div>
 

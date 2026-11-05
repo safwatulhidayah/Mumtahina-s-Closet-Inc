@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 export interface HeroSlide {
   id: number;
@@ -120,18 +120,23 @@ export const HeroBannerCarousel: React.FC<HeroBannerCarouselProps> = ({ onNaviga
     touchEndX.current = null;
   };
 
+  const shouldReduceMotion = useReducedMotion();
+
   const slideVariants = {
     enter: (dir: number) => ({
-      x: dir > 0 ? 30 : -30,
+      x: shouldReduceMotion ? 0 : dir > 0 ? 32 : -32,
       opacity: 0,
+      scale: shouldReduceMotion ? 1 : 1.008,
     }),
     center: {
       x: 0,
       opacity: 1,
+      scale: 1,
     },
     exit: (dir: number) => ({
-      x: dir > 0 ? -30 : 30,
+      x: shouldReduceMotion ? 0 : dir > 0 ? -32 : 32,
       opacity: 0,
+      scale: shouldReduceMotion ? 1 : 0.992,
     }),
   };
 
@@ -175,8 +180,9 @@ export const HeroBannerCarousel: React.FC<HeroBannerCarouselProps> = ({ onNaviga
                 animate="center"
                 exit="exit"
                 transition={{
-                  x: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-                  opacity: { duration: 0.45, ease: 'easeInOut' },
+                  x: { duration: shouldReduceMotion ? 0.05 : 0.55, ease: [0.22, 1, 0.36, 1] },
+                  opacity: { duration: shouldReduceMotion ? 0.05 : 0.45, ease: 'easeInOut' },
+                  scale: { duration: shouldReduceMotion ? 0.05 : 0.55, ease: [0.22, 1, 0.36, 1] },
                 }}
                 className="absolute inset-0 w-full h-full bg-[#FAF0F2]"
               >

@@ -77,14 +77,42 @@
 }
 
 /* Custom animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn95 {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideInBottom {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes badgePop {
   0% { transform: scale(0.75); }
   50% { transform: scale(1.22); }
   100% { transform: scale(1); }
 }
 
-.animate-badge-pop {
-  animation: badgePop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+@keyframes heartPop {
+  0% { transform: scale(0.8); }
+  45% { transform: scale(1.28); }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 
 @keyframes subtleFloat {
@@ -92,7 +120,41 @@
   50% { transform: translateY(-3px); }
 }
 
+.animate-badge-pop {
+  animation: badgePop 320ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.animate-heart-pop {
+  animation: heartPop 360ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 .animate-subtle-float {
   animation: subtleFloat 3.5s ease-in-out infinite;
+}
+
+.animate-in {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.zoom-in-95 {
+  animation-name: zoomIn95;
+}
+
+.slide-in-from-left {
+  animation-name: slideInLeft;
+}
+
+.slide-in-from-right {
+  animation-name: slideInRight;
+}
+
+.slide-in-from-bottom-5 {
+  animation-name: slideInBottom;
 }
 

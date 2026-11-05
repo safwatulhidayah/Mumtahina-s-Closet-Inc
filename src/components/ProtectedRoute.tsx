@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { firebaseUser, isAuthLoading } = useShop();
+  const { currentUser, isAuthLoading } = useShop();
   const location = useLocation();
 
   if (isAuthLoading) {
@@ -21,8 +21,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Only allow verified Firebase authenticated users
-  if (!firebaseUser) {
+  // Allow verified authenticated users (Hostinger session)
+  const isAuthed = !!(currentUser && currentUser.isLoggedIn);
+  if (!isAuthed) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

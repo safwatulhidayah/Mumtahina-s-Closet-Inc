@@ -33,7 +33,6 @@ export const CheckoutPage: React.FC = () => {
     clearCart,
     placeOrder,
     currentUser,
-    firebaseUser,
     addresses,
     zelleSettings,
   } = useShop();
@@ -46,11 +45,11 @@ export const CheckoutPage: React.FC = () => {
 
   // Form states initialized with authenticated user's real information
   const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
-  const defaultNameParts = (currentUser.name || firebaseUser?.displayName || '').trim().split(' ');
+  const defaultNameParts = (currentUser.name || '').trim().split(' ');
   const initialFirst = defaultNameParts[0] || '';
   const initialLast = defaultNameParts.slice(1).join(' ') || '';
 
-  const [email, setEmail] = useState(currentUser.email || firebaseUser?.email || '');
+  const [email, setEmail] = useState(currentUser.email || '');
   const [phone, setPhone] = useState(currentUser.phone || defaultAddr?.phone || '');
   const [firstName, setFirstName] = useState(initialFirst);
   const [lastName, setLastName] = useState(initialLast);
@@ -82,12 +81,12 @@ export const CheckoutPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (firebaseUser || currentUser.isLoggedIn) {
-      if (!email && (currentUser.email || firebaseUser?.email)) {
-        setEmail(currentUser.email || firebaseUser?.email || '');
+    if (currentUser.isLoggedIn) {
+      if (!email && currentUser.email) {
+        setEmail(currentUser.email);
       }
       if (!firstName && !lastName) {
-        const parts = (currentUser.name || firebaseUser?.displayName || '').trim().split(' ');
+        const parts = (currentUser.name || '').trim().split(' ');
         if (parts[0]) setFirstName(parts[0]);
         if (parts.slice(1).join(' ')) setLastName(parts.slice(1).join(' '));
       }
@@ -95,7 +94,7 @@ export const CheckoutPage: React.FC = () => {
         setPhone(currentUser.phone);
       }
     }
-  }, [currentUser, firebaseUser]);
+  }, [currentUser]);
 
   // Calculation
   const subtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
@@ -132,7 +131,7 @@ export const CheckoutPage: React.FC = () => {
     const nowIso = new Date().toISOString();
     const newOrder: Order = {
       orderId,
-      customerId: currentUser?.id || firebaseUser?.uid || `guest-${Date.now()}`,
+      customerId: currentUser?.id || `guest-${Date.now()}`,
       customerName: `${firstName} ${lastName}`.trim() || 'Valued Client',
       customerEmail: email,
       customerPhone: phone || '+1 (214) 555-0198',

@@ -229,11 +229,12 @@ export const Header: React.FC = () => {
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
             >
-              <Heart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              <Heart className="w-4.5 h-4.5 sm:w-5 sm:h-5 transition-transform duration-200 hover:scale-110 active:scale-95" />
               {wishlistCount > 0 && (
                 <span
+                  key={wishlistCount}
                   id="wishlist-badge"
-                  className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 flex items-center justify-center min-w-[15px] h-[15px] sm:min-w-[18px] sm:h-[18px] px-0.5 sm:px-1 text-[9px] sm:text-[10px] font-bold text-white bg-[#E58C9D] rounded-full ring-1.5 sm:ring-2 ring-white"
+                  className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 flex items-center justify-center min-w-[15px] h-[15px] sm:min-w-[18px] sm:h-[18px] px-0.5 sm:px-1 text-[9px] sm:text-[10px] font-bold text-white bg-[#E58C9D] rounded-full ring-1.5 sm:ring-2 ring-white animate-badge-pop"
                 >
                   {wishlistCount}
                 </span>
@@ -250,11 +251,12 @@ export const Header: React.FC = () => {
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5 transition-transform duration-200 hover:scale-110 active:scale-95" />
               {cartCount > 0 && (
                 <span
+                  key={cartCount}
                   id="cart-badge"
-                  className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 flex items-center justify-center min-w-[15px] h-[15px] sm:min-w-[18px] sm:h-[18px] px-0.5 sm:px-1 text-[9px] sm:text-[10px] font-bold text-white bg-[#2D6A4F] rounded-full ring-1.5 sm:ring-2 ring-white"
+                  className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 flex items-center justify-center min-w-[15px] h-[15px] sm:min-w-[18px] sm:h-[18px] px-0.5 sm:px-1 text-[9px] sm:text-[10px] font-bold text-white bg-[#2D6A4F] rounded-full ring-1.5 sm:ring-2 ring-white animate-badge-pop"
                 >
                   {cartCount}
                 </span>
@@ -286,13 +288,18 @@ export const Header: React.FC = () => {
                 key={item.label}
                 to={item.path}
                 id={`nav-link-${item.label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-                className={`text-[13px] uppercase tracking-wider font-semibold py-1 border-b-2 transition-all duration-200 cursor-pointer ${
+                className={`relative text-[13px] uppercase tracking-wider font-semibold py-1.5 transition-colors duration-200 cursor-pointer group ${
                   active
-                    ? 'text-[#2D6A4F] border-[#2D6A4F]'
-                    : 'text-[#0F1E36] border-transparent hover:text-[#2D6A4F] hover:border-[#F4D3D7]'
+                    ? 'text-[#2D6A4F]'
+                    : 'text-[#0F1E36] hover:text-[#2D6A4F]'
                 }`}
               >
-                {item.label}
+                <span>{item.label}</span>
+                <span
+                  className={`absolute bottom-0 left-0 w-full h-[2px] bg-[#2D6A4F] rounded-full transition-transform duration-300 ease-out origin-left ${
+                    active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100 opacity-60 group-hover:opacity-100'
+                  }`}
+                />
               </Link>
             );
           })}

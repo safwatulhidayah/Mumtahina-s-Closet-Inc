@@ -1,0 +1,22 @@
+# ==============================================================================
+# Mumtahina’s Closet Inc - Uploads Directory Security Rules
+# Prohibits script execution in user-uploaded media directories
+# ==============================================================================
+
+# Disable execution of all server-side script files
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|phps|cgi|pl|sh|py|exe|asp|aspx)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Prevent directory indexing
+Options -Indexes
+Options -ExecCGI
+
+# Force correct MIME delivery
+<IfModule mod_mime.c>
+    AddType image/jpeg .jpg .jpeg
+    AddType image/png .png
+    AddType image/webp .webp
+    AddType image/gif .gif
+</IfModule>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   Star,
   ShoppingBag,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   Share2,
   Zap,
+  Check,
 } from 'lucide-react';
 import { Product, Review } from '../types';
 import { ProductCard } from '../components/ProductCard';
@@ -46,6 +48,8 @@ export const ProductDetailsPage: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || 'Standard');
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || 'Original');
   const [quantity, setQuantity] = useState(1);
+  const [isAddedFeedback, setIsAddedFeedback] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   // Accordion toggles
   const [openSection, setOpenSection] = useState<'details' | 'fabric' | 'shipping' | 'returns'>('details');
@@ -208,11 +212,21 @@ export const ProductDetailsPage: React.FC = () => {
 
           {/* Large Main Showcase Image */}
           <div className="relative flex-1 rounded-2xl sm:rounded-3xl overflow-hidden bg-[#FAF7F6] border border-[#F0E4E6] aspect-[3/4] sm:aspect-auto sm:min-h-[580px] w-full min-w-0 group">
-            <img
-              src={product.images[activeImageIndex] || product.images[0]}
-              alt={product.name}
-              className="w-full h-full object-cover object-top transition-all duration-300"
-            />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.img
+                key={activeImageIndex}
+                src={product.images[activeImageIndex] || product.images[0]}
+                alt={product.name}
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0.7, scale: 0.99 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0.75 }}
+                transition={{
+                  duration: shouldReduceMotion ? 0.05 : 0.28,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="w-full h-full object-cover object-top will-change-transform"
+              />
+            </AnimatePresence>
 
             {/* Gallery Carousel Arrow Controls */}
             {product.images && product.images.length > 1 && (
@@ -470,11 +484,28 @@ export const ProductDetailsPage: React.FC = () => {
               {/* Add to Cart CTA */}
               <button
                 id="details-add-to-cart-btn"
-                onClick={() => addToCart(product, selectedSize, selectedColor, quantity)}
-                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-3 px-3 sm:px-6 rounded-xl bg-[#0F1E36] hover:bg-[#1C2E4C] text-white text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+                onClick={() => {
+                  setIsAddedFeedback(true);
+                  setTimeout(() => setIsAddedFeedback(false), 1400);
+                  addToCart(product, selectedSize, selectedColor, quantity);
+                }}
+                className={`flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-3 px-3 sm:px-6 rounded-xl text-white text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-sm active:scale-[0.98] cursor-pointer ${
+                  isAddedFeedback
+                    ? 'bg-[#2D6A4F] scale-[1.01]'
+                    : 'bg-[#0F1E36] hover:bg-[#1C2E4C]'
+                }`}
               >
-                <ShoppingBag className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Add to Shopping Bag</span>
+                {isAddedFeedback ? (
+                  <>
+                    <Check className="w-4 h-4 flex-shrink-0 animate-in zoom-in-95 text-emerald-200" />
+                    <span className="truncate">Added to Shopping Bag!</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Add to Shopping Bag</span>
+                  </>
+                )}
               </button>
             </div>
 

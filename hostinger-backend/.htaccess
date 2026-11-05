@@ -1,0 +1,48 @@
+# ==============================================================================
+# Mumtahina’s Closet Inc - Hostinger public_html Apache Configuration
+# Configures React SPA routing, API pass-through, HTTPS enforcement, and security
+# ==============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Force HTTPS for all traffic
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. Pass all API requests directly to PHP handlers
+    RewriteRule ^api/.*$ - [L]
+
+    # 3. Pass all uploads and static assets directly if file or directory exists
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4. React Single Page Application (SPA) client-side routing fallback
+    # Routes all other paths (e.g. /shop, /category/abaya, /admin) to index.html
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Block direct access to hidden, lock, and configuration files
+<FilesMatch "^(config\.env\.php|\.env|\.git|installed\.lock|schema\.sql)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+

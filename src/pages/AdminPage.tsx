@@ -83,7 +83,6 @@ export const AdminPage: React.FC = () => {
     deleteReview,
     registeredUsers,
     currentUser,
-    firebaseUser,
     signOutUser,
     addToast,
     zelleSettings,
@@ -187,7 +186,7 @@ export const AdminPage: React.FC = () => {
   } | null>(null);
 
   // Active admin info
-  const activeAdminEmail = firebaseUser?.email || currentUser?.email || 'denaislam09@gmail.com';
+  const activeAdminEmail = currentUser?.email || 'denaislam09@gmail.com';
 
   /* ---------------- Computed Dashboard Stats ---------------- */
   const totalProducts = products.length;
@@ -1865,6 +1864,13 @@ export const AdminPage: React.FC = () => {
                     Platform parameters, exclusive Zelle payment gateway configuration, and authorized access credentials
                   </p>
                 </div>
+                <Link
+                  to="/setup"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-[#FAF7F6] hover:bg-slate-100 text-xs font-semibold text-[#0F1E36] transition-colors shrink-0 shadow-xs"
+                >
+                  <Database className="w-4 h-4 text-[#8E1B3E]" />
+                  Database Health & Installer
+                </Link>
               </div>
 
               {/* Zelle Payment Gateway Configuration Panel */}
@@ -2108,7 +2114,7 @@ export const AdminPage: React.FC = () => {
                 <div className="divide-y divide-[#F5EBED] pt-2">
                   {AUTHORIZED_ADMIN_EMAILS.map((email) => {
                     const isCurrent =
-                      (firebaseUser?.email || currentUser?.email)?.toLowerCase() === email.toLowerCase();
+                      currentUser?.email?.toLowerCase() === email.toLowerCase();
                     return (
                       <div key={email} className="py-3 flex items-center justify-between">
                         <div className="flex items-center gap-2.5">

@@ -14,11 +14,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const navigate = useNavigate();
   const {
     addToast,
-    signInWithGoogle,
     signInWithEmail,
     registerWithEmail,
     sendPasswordReset,
-    firebaseUser,
+    currentUser,
     isAuthLoading,
   } = useShop();
 
@@ -30,19 +29,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
     isRegisterRoute ? 'register' : isForgotRoute ? 'forgot' : 'login'
   );
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (Hostinger PHP session)
   useEffect(() => {
-    if (!isAuthLoading && firebaseUser) {
+    const authedEmail = currentUser && currentUser.isLoggedIn ? currentUser.email : null;
+    if (!isAuthLoading && authedEmail) {
       const from = (location.state as { from?: string })?.from;
       if (from) {
         navigate(from, { replace: true });
-      } else if (isAuthorizedAdmin(firebaseUser.email)) {
+      } else if (isAuthorizedAdmin(authedEmail)) {
         navigate('/admin', { replace: true });
       } else {
         navigate('/account', { replace: true });
       }
     }
-  }, [isAuthLoading, firebaseUser, navigate, location.state]);
+  }, [isAuthLoading, currentUser, navigate, location.state]);
 
   // Form states
   const [name, setName] = useState('');
@@ -100,16 +100,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
     }
   };
 
-  const handleSocialLogin = async (provider: string) => {
-    if (provider === 'Google') {
-      setIsSubmitting(true);
-      const success = await signInWithGoogle();
-      setIsSubmitting(false);
-      if (success) {
-        const targetPath = (location.state as { from?: string })?.from || '/account';
-        navigate(targetPath);
-      }
-    }
+  const handleSocialLogin = async (_provider: string) => {
+    addToast('Please sign in with your email address and password.', 'info');
   };
 
   return (

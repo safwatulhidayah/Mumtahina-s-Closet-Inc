@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { ShopProvider, useShop } from './context/ShopContext';
 
 // Core Components
@@ -33,6 +33,7 @@ import { OrderHistoryPage } from './pages/OrderHistoryPage';
 import { AuthPage } from './pages/AuthPage';
 import { StaticPages } from './pages/StaticPages';
 import { AdminPage } from './pages/AdminPage';
+import { SetupPage } from './pages/SetupPage';
 
 const AppLayout: React.FC = () => {
   const {
@@ -52,6 +53,7 @@ const AppLayout: React.FC = () => {
 
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F6] text-[#0F1E36] font-sans antialiased w-full max-w-full min-w-0">
@@ -64,10 +66,13 @@ const AppLayout: React.FC = () => {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 6 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            transition={{
+              duration: shouldReduceMotion ? 0.05 : 0.26,
+              ease: [0.16, 1, 0.3, 1],
+            }}
             className="w-full flex-1 flex flex-col min-w-0"
           >
             <Routes location={location}>
@@ -177,6 +182,9 @@ const AppLayout: React.FC = () => {
                   </AdminRoute>
                 }
               />
+
+              {/* 22. DATABASE SETUP & HEALTH CHECK */}
+              <Route path="/setup" element={<SetupPage />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

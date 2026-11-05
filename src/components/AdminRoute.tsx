@@ -8,7 +8,7 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { firebaseUser, currentUser, isAuthLoading } = useShop();
+  const { currentUser, isAuthLoading } = useShop();
   const location = useLocation();
 
   if (isAuthLoading) {
@@ -22,8 +22,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  const effectiveEmail = firebaseUser?.email || (currentUser.isLoggedIn ? currentUser.email : null);
-  const userIsLoggedIn = !!firebaseUser || currentUser.isLoggedIn;
+  const effectiveEmail = currentUser.isLoggedIn ? currentUser.email : null;
+  const userIsLoggedIn = !!currentUser.isLoggedIn;
   const isAdmin = isAuthorizedAdmin(effectiveEmail);
 
   // 1. Unauthenticated users: redirect to login

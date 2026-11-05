@@ -1,20 +1,23 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
+/**
+ * Mumtahina’s Closet Inc - Image Storage Service (Hostinger Server Storage)
+ *
+ * Uploads images directly to Hostinger server storage (/uploads/products/)
+ * via the Hostinger PHP API, completely replacing Firebase Storage.
+ */
+
+import { uploadApi } from './api';
 
 /**
- * Compresses an image file to a responsive, web-friendly data URL as a reliable
- * fallback if cloud storage is unreachable or operating offline.
+ * Fallback compressor: converts an image file to a responsive web data URL
+ * if network connection to Hostinger is temporarily unreachable during local preview.
  */
 function fileToDataUrl(file: File, maxWidth = 1200, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      if (!result) {
-        return resolve('');
-      }
+      if (!result) return resolve('');
 
-      // If already a small image or SVG, return directly
       if (file.size < 200 * 1024 || file.type.includes('svg')) {
         return resolve(result);
       }
@@ -33,9 +36,7 @@ function fileToDataUrl(file: File, maxWidth = 1200, quality = 0.85): Promise<str
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          return resolve(result);
-        }
+        if (!ctx) return resolve(result);
 
         ctx.drawImage(img, 0, 0, width, height);
         const compressed = canvas.toDataURL('image/jpeg', quality);
@@ -50,34 +51,25 @@ function fileToDataUrl(file: File, maxWidth = 1200, quality = 0.85): Promise<str
 }
 
 /**
- * Uploads a single product image to Firebase Storage with a graceful fallback.
+ * Uploads a single product image to Hostinger PHP storage (/uploads/products/).
  */
-export async function uploadProductImage(file: File, productId: string): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const path = `products/${productId}/${Date.now()}_${safeName}`;
-
+export async function uploadProductImage(file: File, _productId?: string): Promise<string> {
   try {
-    const storageRef = ref(storage, path);
-    const metadata = {
-      contentType: file.type || 'image/jpeg',
-    };
-    const snapshot = await uploadBytes(storageRef, file, metadata);
-    const downloadUrl = await getDownloadURL(snapshot.ref);
-    return downloadUrl;
-  } catch (storageErr) {
-    console.warn('Firebase Storage upload notice, falling back to local media buffer:', storageErr);
-    // Reliable fallback to high-quality compressed data URL
-    const fallbackUrl = await fileToDataUrl(file);
-    return fallbackUrl;
+    const remoteUrl = await uploadApi.uploadSingle(file, 'products');
+    if (remoteUrl) return remoteUrl;
+    throw new Error('Hostinger upload returned empty URL');
+  } catch (err) {
+    console.warn('Hostinger storage upload notice, falling back to local media buffer:', err);
+    return fileToDataUrl(file);
   }
 }
 
 /**
- * Uploads multiple product images in parallel or batch.
+ * Uploads multiple product images in parallel or batch to Hostinger.
  */
 export async function uploadMultipleProductImages(
   files: File[],
-  productId: string,
+  _productId?: string,
   onProgress?: (completed: number, total: number) => void
 ): Promise<string[]> {
   const results: string[] = [];
@@ -85,7 +77,7 @@ export async function uploadMultipleProductImages(
 
   for (const file of files) {
     try {
-      const url = await uploadProductImage(file, productId);
+      const url = await uploadProductImage(file, _productId);
       if (url) results.push(url);
     } catch (e) {
       console.error(`Failed to process image ${file.name}:`, e);

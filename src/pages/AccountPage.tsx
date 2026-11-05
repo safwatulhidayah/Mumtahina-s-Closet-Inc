@@ -30,7 +30,6 @@ export const AccountPage: React.FC = () => {
     addToast,
     saveUserProfile,
     signOutUser,
-    firebaseUser,
     isAuthLoading,
     isAdmin,
     addresses,
@@ -48,11 +47,9 @@ export const AccountPage: React.FC = () => {
     }
   }, [accessDenied, addToast]);
 
-  // Customer state: real authenticated information without fake fallbacks
-  const [fullName, setFullName] = useState(
-    user?.name || firebaseUser?.displayName || (firebaseUser?.email ? firebaseUser.email.split('@')[0] : '')
-  );
-  const [email, setEmail] = useState(user?.email || firebaseUser?.email || '');
+  // Customer state: real authenticated information from Hostinger PHP session
+  const [fullName, setFullName] = useState(user?.name || (user?.email ? user.email.split('@')[0] : ''));
+  const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -61,11 +58,8 @@ export const AccountPage: React.FC = () => {
       if (user.name) setFullName(user.name);
       if (user.email) setEmail(user.email);
       if (user.phone !== undefined) setPhone(user.phone);
-    } else if (firebaseUser) {
-      if (firebaseUser.displayName) setFullName(firebaseUser.displayName);
-      if (firebaseUser.email) setEmail(firebaseUser.email);
     }
-  }, [user, firebaseUser]);
+  }, [user]);
 
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddrTitle, setNewAddrTitle] = useState('');
@@ -86,7 +80,8 @@ export const AccountPage: React.FC = () => {
     );
   }
 
-  if (!firebaseUser) {
+  const isAuthed = !!(user && user.isLoggedIn);
+  if (!isAuthed) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

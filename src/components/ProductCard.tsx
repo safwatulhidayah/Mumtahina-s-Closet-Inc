@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Eye, Star, ShoppingBag, Share2, ArrowRight } from 'lucide-react';
+import { Heart, Eye, Star, ShoppingBag, Share2, ArrowRight, Check } from 'lucide-react';
 import { Product } from '../types';
 import { ThreeDotMenu, ThreeDotMenuItem } from './ThreeDotMenu';
 import { useShop } from '../context/ShopContext';
@@ -24,6 +24,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [, setIsHovered] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [justHearted, setJustHearted] = useState(false);
   const navigate = useNavigate();
   const { addToast } = useShop();
 
@@ -96,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <div
       id={`product-card-${product.id}`}
       onClick={handleCardClick}
-      className="group relative flex flex-col bg-white rounded-xl border border-[#F0E4E6] overflow-hidden hover:border-[#2D6A4F]/40 hover:shadow-lg sm:hover:-translate-y-1.5 transition-all duration-300 ease-out w-full min-w-0 cursor-pointer will-change-transform"
+      className="group relative flex flex-col bg-white rounded-xl border border-[#F0E4E6] overflow-hidden hover:border-[#2D6A4F]/40 hover:shadow-[0_12px_28px_-6px_rgba(15,30,54,0.12)] sm:hover:-translate-y-1.5 transition-all duration-300 ease-out w-full min-w-0 cursor-pointer will-change-transform"
       onMouseEnter={() => {
         setIsHovered(true);
         if (product.images.length > 1) {
@@ -117,7 +119,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           src={product.images[currentImageIndex] || product.images[0]}
           alt={product.name}
           loading="lazy"
-          className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-108"
+          className="h-full w-full object-cover object-center transition-all duration-700 ease-out group-hover:scale-108 will-change-transform"
         />
 
         {/* Badges Container */}
@@ -155,6 +157,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             id={`wishlist-toggle-${product.id}`}
             onClick={(e) => {
               e.stopPropagation();
+              setJustHearted(true);
+              setTimeout(() => setJustHearted(false), 500);
               onToggleWishlist(product);
             }}
             className={`p-1.5 rounded-full backdrop-blur-xs transition-all duration-200 hover:scale-110 active:scale-90 shadow-2xs cursor-pointer ${
@@ -164,7 +168,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }`}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className={`w-4 h-4 transition-transform duration-200 ${isWishlisted ? 'fill-[#E58C9D] scale-110' : ''}`} />
+            <Heart
+              className={`w-4 h-4 transition-transform duration-200 ${
+                isWishlisted ? 'fill-[#E58C9D] scale-110' : ''
+              } ${justHearted ? 'animate-heart-pop' : ''}`}
+            />
           </button>
         </div>
 
@@ -186,12 +194,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               id={`quick-add-btn-${product.id}`}
               onClick={(e) => {
                 e.stopPropagation();
+                setJustAdded(true);
+                setTimeout(() => setJustAdded(false), 1200);
                 onAddToCartDirect(product);
               }}
-              className="p-2 bg-[#2D6A4F] hover:bg-[#1B4332] text-white rounded-lg shadow-sm transition-colors cursor-pointer pointer-events-auto"
+              className="p-2 bg-[#2D6A4F] hover:bg-[#1B4332] active:scale-95 text-white rounded-lg shadow-sm transition-all duration-200 cursor-pointer pointer-events-auto flex items-center justify-center"
               title="Add to Cart"
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
+              {justAdded ? (
+                <Check className="w-3.5 h-3.5 animate-in zoom-in-95 text-emerald-200" />
+              ) : (
+                <ShoppingBag className="w-3.5 h-3.5" />
+              )}
             </button>
           )}
         </div>

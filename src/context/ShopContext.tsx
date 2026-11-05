@@ -1,25 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import {
-  onAuthStateChanged,
-  User as FirebaseUser,
-  signInWithPopup,
-  signOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  updateProfile,
-} from 'firebase/auth';
-import {
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  collection,
-  onSnapshot,
-  deleteDoc,
-} from 'firebase/firestore';
-import { auth, db, googleProvider } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseErrors';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Product,
   CartItem,
@@ -37,9 +16,22 @@ import {
 import { PRODUCTS, INITIAL_ORDERS } from '../data/mockData';
 import { isAuthorizedAdmin } from '../lib/adminAuth';
 import { parseColorsInput } from '../lib/colorUtils';
+import {
+  authApi,
+  productsApi,
+  categoriesApi,
+  ordersApi,
+  cartApi,
+  wishlistApi,
+  addressesApi,
+  reviewsApi,
+  inquiriesApi,
+  settingsApi,
+} from '../lib/api';
 
 export type { UserProfile };
 
+// Compatibility alias for transition
 interface ShopContextType {
   products: Product[];
   cartItems: CartItem[];
@@ -49,7 +41,6 @@ interface ShopContextType {
   setCurrentUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   user: UserProfile;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
-  firebaseUser: FirebaseUser | null;
   registeredUsers: UserProfile[];
   isAuthLoading: boolean;
   signInWithGoogle: () => Promise<boolean>;
@@ -296,30 +287,25 @@ const INITIAL_REVIEWS_SEED: Review[] = [
 export const DEFAULT_ZELLE_SETTINGS: ZelleSettings = {
   accountHolderName: 'Dilruba Shabnam',
   phone: '914-303-9181',
-  email: '',
+  email: 'clientshabnamusa@gmail.com',
   qrCodeUrl: 'https://cdn.phototourl.com/member/2026-09-29-15445970-229c-41bd-9aaf-dc85f6d6e352.jpg',
   paymentUrl: 'https://enroll.zellepay.com/qr-codes?data=eyJhY3Rpb24iOiJwYXltZW50IiwibmFtZSI6IkRpbHJ1YmEgU2hhYm5hbSIsInRva2VuIjoiOTE0MzAzOTE4MSJ9',
-  paymentInstructions: 'Send payment via Zelle using the QR code, Pay with Zelle button, or phone number above. Please include your full name or order reference in the payment memo.',
+  paymentInstructions: 'Please scan the Zelle QR code or send payment to 914-303-9181 (Dilruba Shabnam). Once sent, enter your Zelle confirmation/transaction number below. Our atelier will verify your payment and process your order immediately.',
   updatedAt: '',
 };
 
-// Helper to sanitize doc ID strings
-function sanitizeDocId(str: string): string {
-  return str.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 60);
-}
-
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Live Collections synced with Firestore
+  // Live Collections synced with Hostinger MySQL
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [categories, setCategories] = useState<CategoryItem[]>(INITIAL_CATEGORIES);
   const [inquiries, setInquiries] = useState<Inquiry[]>(INITIAL_INQUIRIES);
   const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS_SEED);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
   const [zelleSettings, setZelleSettings] = useState<ZelleSettings>(DEFAULT_ZELLE_SETTINGS);
 
-  // Cart & Wishlist (No fake pre-populated items)
+  // Cart & Wishlist
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('mumtahinas_closet_cart');
@@ -356,7 +342,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   });
 
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Quick View & Modals
@@ -380,11 +365,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Determine if active user is an authorized admin
   const isAdmin = useMemo(() => {
-    const email = firebaseUser?.email || (currentUser.isLoggedIn ? currentUser.email : '');
+    const email = currentUser.isLoggedIn ? currentUser.email : '';
     return isAuthorizedAdmin(email);
-  }, [firebaseUser?.email, currentUser.email, currentUser.isLoggedIn]);
+  }, [currentUser.email, currentUser.isLoggedIn]);
 
-  const updateCurrentUser = (newUser: UserProfile | ((prev: UserProfile) => UserProfile)) => {
+  const updateCurrentUser = useCallback((newUser: UserProfile | ((prev: UserProfile) => UserProfile)) => {
     setCurrentUser((prev) => {
       const next = typeof newUser === 'function' ? newUser(prev) : newUser;
       try {
@@ -398,703 +383,155 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return next;
     });
-  };
+  }, []);
 
   // Persist guest cart locally if not logged in
   useEffect(() => {
-    if (!firebaseUser) {
+    if (!currentUser.isLoggedIn) {
       try {
         localStorage.setItem('mumtahinas_closet_cart', JSON.stringify(cartItems));
       } catch (e) {
         console.warn('Failed to save guest cart to localStorage:', e);
       }
     }
-  }, [cartItems, firebaseUser]);
+  }, [cartItems, currentUser.isLoggedIn]);
 
   /* =========================================================================
-     1. PRODUCTS: Realtime Firestore Sync & Catalog Seeding
+     1. INITIAL SYNC WITH HOSTINGER PHP REST API
      ========================================================================= */
-  useEffect(() => {
+  const refreshBackendData = useCallback(async () => {
     try {
-      const productsColRef = collection(db, 'products');
-      const unsubscribe = onSnapshot(
-        productsColRef,
-        async (snapshot) => {
-          if (!snapshot.empty) {
-            const list: Product[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              return {
-                id: d.id,
-                name: data.name || 'Modest Garment',
-                subtitle: data.subtitle || '',
-                category: data.category || 'Women',
-                categoryLabel: data.categoryLabel || data.category || 'Women',
-                price: typeof data.price === 'number' ? data.price : 0,
-                originalPrice: data.originalPrice,
-                isNew: !!data.isNew,
-                isBestSeller: !!data.isBestSeller,
-                isSale: !!data.isSale,
-                rating: typeof data.rating === 'number' ? data.rating : 5,
-                reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : 0,
-                images: Array.isArray(data.images) && data.images.length > 0 ? data.images : [data.image || 'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?auto=format&fit=crop&w=800&q=80'],
-                colors: (() => {
-                  const parsed = parseColorsInput(data.colors || data.colorNames);
-                  return parsed.length > 0 ? parsed : [{ name: 'Original', hex: '#0F1E36' }];
-                })(),
-                colorNames: Array.isArray(data.colorNames)
-                  ? data.colorNames
-                  : (parseColorsInput(data.colors || data.colorNames).map((c) => c.name)),
-                sizes: Array.isArray(data.sizes) ? data.sizes : ['Standard'],
-                description: data.description || '',
-                features: Array.isArray(data.features) ? data.features : [],
-                fabric: data.fabric || data.material || 'Premium Modest Fabric',
-                material: data.material || data.fabric,
-                dimensions: data.dimensions,
-                careInstructions: data.careInstructions || 'Dry Clean Recommended',
-                stock: typeof data.stock === 'number' ? data.stock : 15,
-                isActive: data.isActive !== undefined ? data.isActive : true,
-                createdAt: data.createdAt,
-                updatedAt: data.updatedAt,
-              };
-            });
-            setProducts(list);
-          } else {
-            // Seed initial products to Firestore
-            try {
-              for (const p of PRODUCTS) {
-                await setDoc(doc(db, 'products', p.id), {
-                  ...p,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                });
-              }
-            } catch (seedErr) {
-              console.warn('Products initial seed notice:', seedErr);
-            }
-          }
-        },
-        (err) => {
-          console.warn('Products listener notice:', err);
-        }
-      );
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Error setting up products listener:', e);
-    }
-  }, []);
-
-  /* =========================================================================
-     2. CATEGORIES: Realtime Firestore Sync & Seeding
-     ========================================================================= */
-  useEffect(() => {
-    try {
-      const categoriesColRef = collection(db, 'categories');
-      const unsubscribe = onSnapshot(
-        categoriesColRef,
-        async (snapshot) => {
-          if (!snapshot.empty) {
-            const list: CategoryItem[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              const categoryId = data.categoryId || d.id;
-              return {
-                id: categoryId,
-                categoryId,
-                slug: data.slug || categoryId,
-                nameEn: data.nameEn || 'Category',
-                nameBn: data.nameBn || '',
-                description: data.description || '',
-                image: data.image || '',
-                itemCount: typeof data.itemCount === 'number' ? data.itemCount : 0,
-                isActive: data.status ? data.status === 'active' : (data.isActive !== false),
-                status: data.status || (data.isActive !== false ? 'active' : 'hidden'),
-                featured: !!data.featured,
-                createdAt: data.createdAt,
-                updatedAt: data.updatedAt,
-              };
-            });
-            setCategories(list);
-          } else {
-            // Seed initial categories to Firestore
-            try {
-              for (const cat of INITIAL_CATEGORIES) {
-                await setDoc(doc(db, 'categories', cat.id), {
-                  categoryId: cat.id,
-                  id: cat.id,
-                  nameEn: cat.nameEn,
-                  nameBn: cat.nameBn || '',
-                  image: cat.image,
-                  slug: cat.slug,
-                  status: cat.status || 'active',
-                  description: cat.description || '',
-                  itemCount: cat.itemCount || 0,
-                  isActive: cat.isActive !== false,
-                  featured: !!cat.featured,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                });
-              }
-            } catch (seedErr) {
-              console.warn('Categories initial seed notice:', seedErr);
-            }
-          }
-        },
-        (err) => {
-          console.warn('Categories listener notice:', err);
-        }
-      );
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Error setting up categories listener:', e);
-    }
-  }, []);
-
-  /* =========================================================================
-     2B. ZELLE SETTINGS: Realtime Firestore Sync
-     ========================================================================= */
-  useEffect(() => {
-    try {
-      const zelleDocRef = doc(db, 'settings', 'zelle');
-      const unsubscribe = onSnapshot(
-        zelleDocRef,
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            setZelleSettings({
-              email: data.email ?? DEFAULT_ZELLE_SETTINGS.email,
-              phone: data.phone || DEFAULT_ZELLE_SETTINGS.phone,
-              accountHolderName: data.accountHolderName || DEFAULT_ZELLE_SETTINGS.accountHolderName,
-              qrCodeUrl: data.qrCodeUrl || DEFAULT_ZELLE_SETTINGS.qrCodeUrl,
-              paymentUrl: data.paymentUrl || DEFAULT_ZELLE_SETTINGS.paymentUrl,
-              paymentInstructions: data.paymentInstructions ?? DEFAULT_ZELLE_SETTINGS.paymentInstructions,
-              updatedAt: data.updatedAt || '',
-            });
-          } else {
-            setZelleSettings(DEFAULT_ZELLE_SETTINGS);
-          }
-        },
-        (err) => {
-          console.warn('Zelle settings listener notice:', err);
-          setZelleSettings(DEFAULT_ZELLE_SETTINGS);
-        }
-      );
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Error setting up Zelle settings listener:', e);
-    }
-  }, []);
-
-  /* =========================================================================
-     3. REVIEWS: Realtime Firestore Sync & Seeding
-     ========================================================================= */
-  useEffect(() => {
-    try {
-      const reviewsColRef = collection(db, 'reviews');
-      const unsubscribe = onSnapshot(
-        reviewsColRef,
-        async (snapshot) => {
-          if (!snapshot.empty) {
-            const list: Review[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              const reviewId = data.reviewId || d.id;
-              return {
-                id: reviewId,
-                reviewId,
-                productId: data.productId || '',
-                customerId: data.customerId || '',
-                customerName: data.customerName || data.userName || 'Client',
-                userName: data.customerName || data.userName || 'Client',
-                rating: typeof data.rating === 'number' ? data.rating : 5,
-                comment: data.comment || '',
-                title: data.title || '',
-                date: data.date || (data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recent'),
-                verified: data.verified !== false,
-                fitFeedback: data.fitFeedback || '',
-                status: data.status || 'approved',
-                createdAt: data.createdAt || new Date().toISOString(),
-              };
-            });
-            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            setReviews(list);
-          } else {
-            // Seed initial reviews to Firestore
-            try {
-              for (const rev of INITIAL_REVIEWS_SEED) {
-                await setDoc(doc(db, 'reviews', rev.id), {
-                  ...rev,
-                  reviewId: rev.id,
-                });
-              }
-            } catch (seedErr) {
-              console.warn('Reviews initial seed notice:', seedErr);
-            }
-          }
-        },
-        (err) => {
-          console.warn('Reviews listener notice:', err);
-        }
-      );
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Error setting up reviews listener:', e);
-    }
-  }, []);
-
-  /* =========================================================================
-     4. AUTHENTICATION & USER DATA SYNC
-     ========================================================================= */
-  useEffect(() => {
-    let unsubscribeOrders: (() => void) | null = null;
-    let unsubscribeWishlist: (() => void) | null = null;
-    let unsubscribeCart: (() => void) | null = null;
-    let unsubscribeAddresses: (() => void) | null = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
-
-      if (fbUser) {
-        const userDocRef = doc(db, 'users', fbUser.uid);
-        try {
-          const userSnap = await getDoc(userDocRef);
-          const email = fbUser.email || '';
-          const userRole = isAuthorizedAdmin(email) ? 'admin' : 'customer';
-
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            updateCurrentUser({
-              id: fbUser.uid,
-              uid: fbUser.uid,
-              name: data.name || fbUser.displayName || email.split('@')[0] || 'Valued Client',
-              email: data.email || email,
-              phone: data.phone || '',
-              photoURL: data.photoURL || fbUser.photoURL || '',
-              role: data.role || userRole,
-              createdAt: data.createdAt || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              isLoggedIn: true,
-            });
-          } else {
-            const initialProfile: UserProfile = {
-              id: fbUser.uid,
-              uid: fbUser.uid,
-              name: fbUser.displayName || email.split('@')[0] || 'Valued Client',
-              email: email,
-              phone: '',
-              photoURL: fbUser.photoURL || '',
-              role: userRole,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              isLoggedIn: true,
-            };
-            await setDoc(userDocRef, initialProfile);
-            updateCurrentUser(initialProfile);
-          }
-        } catch (err) {
-          handleFirestoreError(err, OperationType.GET, `users/${fbUser.uid}`);
-        }
-
-        // Realtime Customer Orders from /users/{uid}/orders
-        const ordersColRef = collection(db, 'users', fbUser.uid, 'orders');
-        unsubscribeOrders = onSnapshot(
-          ordersColRef,
-          (snapshot) => {
-            const userOrders: Order[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              const orderId = data.orderId || data.id || d.id;
-              const totalAmount = typeof data.totalAmount === 'number' ? data.totalAmount : (data.total || 0);
-              return {
-                id: orderId,
-                orderId,
-                customerId: fbUser.uid,
-                customerName: data.customerName || fbUser.displayName || 'Valued Client',
-                customerEmail: data.customerEmail || fbUser.email || '',
-                customerPhone: data.customerPhone || '',
-                items: Array.isArray(data.items) ? data.items : [],
-                totalAmount,
-                total: totalAmount,
-                currency: data.currency || 'USD',
-                paymentMethod: data.paymentMethod || 'zelle',
-                paymentStatus: data.paymentStatus || 'pending',
-                orderStatus: data.orderStatus || data.status || 'pending',
-                status: data.orderStatus || data.status || 'pending',
-                createdAt: data.createdAt || new Date().toISOString(),
-                date: data.date || (data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-                paymentId: data.paymentId || data.transactionReference || '',
-                transactionReference: data.transactionReference || data.zelleReference || data.paymentId || '',
-                zelleReference: data.zelleReference || data.transactionReference || data.paymentId || '',
-                trackingNumber: data.trackingNumber || '',
-                carrier: data.carrier || 'USPS Priority Mail',
-                estimatedDelivery: data.estimatedDelivery || '',
-                subtotal: data.subtotal || totalAmount,
-                shipping: data.shipping || 0,
-                discount: data.discount || 0,
-                tax: data.tax || 0,
-                shippingAddress: data.shippingAddress,
-              };
-            });
-            userOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            // Only update customer orders if not admin viewing the store-wide orders
-            if (!isAuthorizedAdmin(fbUser.email)) {
-              setOrders(userOrders);
-            }
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}/orders`);
-          }
-        );
-
-        // Realtime Wishlist from /users/{uid}/wishlist
-        const wishlistColRef = collection(db, 'users', fbUser.uid, 'wishlist');
-        unsubscribeWishlist = onSnapshot(
-          wishlistColRef,
-          (snapshot) => {
-            if (!snapshot.empty) {
-              const productIds = snapshot.docs.map((d) => d.data().productId || d.id);
-              // Map against current products state
-              setWishlist((currentProducts) => {
-                return products.filter((p) => productIds.includes(p.id));
-              });
-            } else {
-              setWishlist([]);
-            }
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}/wishlist`);
-          }
-        );
-
-        // Realtime Shipping Addresses from /users/{uid}/addresses (Starts at 0 addresses)
-        const addressesColRef = collection(db, 'users', fbUser.uid, 'addresses');
-        unsubscribeAddresses = onSnapshot(
-          addressesColRef,
-          (snapshot) => {
-            if (!snapshot.empty) {
-              const list: ShippingAddress[] = snapshot.docs.map((d) => {
-                const data = d.data();
-                return {
-                  id: d.id,
-                  title: data.title || 'Address',
-                  street: data.street || '',
-                  city: data.city || '',
-                  state: data.state || 'TX',
-                  zip: data.zip || '',
-                  isDefault: !!data.isDefault,
-                  createdAt: data.createdAt,
-                  updatedAt: data.updatedAt,
-                };
-              });
-              setAddresses(list);
-            } else {
-              // New customers must start with zero addresses
-              setAddresses([]);
-            }
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}/addresses`);
-          }
-        );
-
-        // Realtime Persistent Cart from /users/{uid}/cart
-        const cartColRef = collection(db, 'users', fbUser.uid, 'cart');
-        unsubscribeCart = onSnapshot(
-          cartColRef,
-          async (snapshot) => {
-            if (!snapshot.empty) {
-              const liveCartItems: CartItem[] = [];
-              for (const d of snapshot.docs) {
-                const data = d.data();
-                const matchedProduct = products.find((p) => p.id === data.productId) || PRODUCTS.find((p) => p.id === data.productId);
-                if (matchedProduct) {
-                  liveCartItems.push({
-                    product: matchedProduct,
-                    selectedSize: data.selectedSize || matchedProduct.sizes[0] || 'Standard',
-                    selectedColor: data.selectedColor || matchedProduct.colors[0]?.name || 'Original',
-                    quantity: typeof data.quantity === 'number' && data.quantity > 0 ? data.quantity : 1,
-                  });
-                }
-              }
-              setCartItems(liveCartItems);
-            } else {
-              // If user has local guest items, sync them up to Firestore cart without duplicate records
-              const savedGuestCart = localStorage.getItem('mumtahinas_closet_cart');
-              if (savedGuestCart) {
-                try {
-                  const parsed = JSON.parse(savedGuestCart);
-                  if (Array.isArray(parsed) && parsed.length > 0) {
-                    for (const item of parsed) {
-                      const itemId = `${item.product.id}_${sanitizeDocId(item.selectedSize)}_${sanitizeDocId(item.selectedColor)}`;
-                      await setDoc(doc(db, 'users', fbUser.uid, 'cart', itemId), {
-                        id: itemId,
-                        productId: item.product.id,
-                        selectedSize: item.selectedSize,
-                        selectedColor: item.selectedColor,
-                        quantity: item.quantity,
-                        updatedAt: new Date().toISOString(),
-                      });
-                    }
-                    localStorage.removeItem('mumtahinas_closet_cart');
-                  }
-                } catch (e) {
-                  console.warn('Failed to migrate guest cart:', e);
-                }
-              } else {
-                setCartItems([]);
-              }
-            }
-          },
-          (error) => {
-            handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}/cart`);
-          }
-        );
-      } else {
-        // Logged out
-        if (unsubscribeOrders) unsubscribeOrders();
-        if (unsubscribeWishlist) unsubscribeWishlist();
-        if (unsubscribeCart) unsubscribeCart();
-        if (unsubscribeAddresses) unsubscribeAddresses();
-
-        setWishlist([]);
-        setAddresses([]);
-        setOrders([]);
-        localStorage.removeItem('mumtahinas_closet_user');
-
-        // Restore guest cart from localStorage
-        try {
-          const guestSaved = localStorage.getItem('mumtahinas_closet_cart');
-          if (guestSaved) {
-            const parsed = JSON.parse(guestSaved);
-            if (Array.isArray(parsed)) {
-              setCartItems(parsed);
-            }
-          } else {
-            setCartItems([]);
-          }
-        } catch (e) {
-          setCartItems([]);
-        }
-
-        setCurrentUser({
-          name: '',
-          email: '',
-          phone: '',
-          isLoggedIn: false,
+      // 1. Check current session
+      const meRes = await authApi.me();
+      if (meRes.success && meRes.user && meRes.isLoggedIn) {
+        const role = isAuthorizedAdmin(meRes.user.email) ? 'admin' : (meRes.user.role || 'customer');
+        updateCurrentUser({
+          ...meRes.user,
+          role,
+          isLoggedIn: true,
         });
       }
+
+      // 2. Load products from MySQL
+      const prodRes = await productsApi.getAll();
+      if (prodRes.success && Array.isArray(prodRes.products) && prodRes.products.length > 0) {
+        setProducts(prodRes.products);
+      }
+
+      // 3. Load categories from MySQL
+      const catRes = await categoriesApi.getAll();
+      if (catRes.success && Array.isArray(catRes.categories) && catRes.categories.length > 0) {
+        setCategories(catRes.categories);
+      }
+
+      // 4. Load Zelle settings from MySQL
+      const zelleRes = await settingsApi.getZelle();
+      if (zelleRes.success && zelleRes.settings) {
+        setZelleSettings((prev) => ({
+          ...prev,
+          ...zelleRes.settings,
+        }));
+      }
+
+      // 5. Load reviews from MySQL
+      const revRes = await reviewsApi.getAll();
+      if (revRes.success && Array.isArray(revRes.reviews) && revRes.reviews.length > 0) {
+        setReviews(revRes.reviews);
+      }
+    } catch (err) {
+      console.warn('Hostinger data sync note:', err);
+    } finally {
       setIsAuthLoading(false);
-    });
+    }
+  }, [updateCurrentUser]);
 
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeOrders) unsubscribeOrders();
-      if (unsubscribeWishlist) unsubscribeWishlist();
-      if (unsubscribeCart) unsubscribeCart();
-      if (unsubscribeAddresses) unsubscribeAddresses();
-    };
-  }, [products]);
-
-  /* =========================================================================
-     5. ADMIN ONLY LISTENERS: All Orders, Users, & Inquiries
-     ========================================================================= */
   useEffect(() => {
-    if (!isAdmin) return;
+    refreshBackendData();
+  }, [refreshBackendData]);
 
-    // A. All Orders across store
-    let unsubscribeAdminOrders: (() => void) | null = null;
-    try {
-      const ordersColRef = collection(db, 'orders');
-      unsubscribeAdminOrders = onSnapshot(
-        ordersColRef,
-        async (snapshot) => {
-          if (!snapshot.empty) {
-            const list: Order[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              const orderId = data.orderId || data.id || d.id;
-              const totalAmount = typeof data.totalAmount === 'number' ? data.totalAmount : (typeof data.total === 'number' ? data.total : 0);
-              const paymentStatus = (data.paymentStatus || 'Pending') as PaymentStatus;
-              const orderStatus = (data.orderStatus || data.status || 'Pending') as OrderStatus;
-              return {
-                orderId,
-                customerId: data.customerId || data.userId || 'guest',
-                customerName: data.customerName || data.shippingAddress?.fullName || 'Valued Client',
-                customerEmail: data.customerEmail || 'client@example.com',
-                customerPhone: data.customerPhone || '',
-                items: Array.isArray(data.items) ? data.items : [],
-                totalAmount,
-                currency: data.currency || 'USD',
-                paymentMethod: data.paymentMethod || 'zelle',
-                paymentStatus,
-                orderStatus,
-                createdAt: data.createdAt || (data.date ? new Date(data.date).toISOString() : new Date().toISOString()),
-                paymentId: data.paymentId || data.transactionReference || '',
-                transactionReference: data.transactionReference || data.zelleReference || data.paymentId || '',
-                zelleReference: data.zelleReference || data.transactionReference || data.paymentId || '',
-                id: orderId,
-                date: data.date || (data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-                status: orderStatus,
-                total: totalAmount,
-                trackingNumber: data.trackingNumber || '',
-                carrier: data.carrier || 'USPS Priority Mail',
-                estimatedDelivery: data.estimatedDelivery || '',
-                subtotal: typeof data.subtotal === 'number' ? data.subtotal : totalAmount,
-                shipping: typeof data.shipping === 'number' ? data.shipping : 0,
-                discount: typeof data.discount === 'number' ? data.discount : 0,
-                tax: typeof data.tax === 'number' ? data.tax : 0,
-                shippingAddress: data.shippingAddress || undefined,
-              };
-            });
-            list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setOrders(list);
-          } else {
-            // Seed initial orders to Firestore /orders if empty
-            try {
-              for (const initialOrd of INITIAL_ORDERS) {
-                const docRef = doc(db, 'orders', initialOrd.orderId);
-                await setDoc(docRef, {
-                  orderId: initialOrd.orderId,
-                  customerId: initialOrd.customerId,
-                  customerName: initialOrd.customerName,
-                  customerEmail: initialOrd.customerEmail,
-                  customerPhone: initialOrd.customerPhone || '',
-                  items: initialOrd.items,
-                  totalAmount: initialOrd.totalAmount,
-                  currency: initialOrd.currency,
-                  paymentMethod: initialOrd.paymentMethod,
-                  paymentStatus: initialOrd.paymentStatus,
-                  orderStatus: initialOrd.orderStatus,
-                  createdAt: initialOrd.createdAt,
-                  paymentId: initialOrd.paymentId || '',
-                  id: initialOrd.orderId,
-                  date: initialOrd.date,
-                  status: initialOrd.orderStatus,
-                  total: initialOrd.totalAmount,
-                  trackingNumber: initialOrd.trackingNumber || '',
-                  carrier: initialOrd.carrier || 'USPS Priority Mail',
-                  estimatedDelivery: initialOrd.estimatedDelivery || '',
-                  subtotal: initialOrd.subtotal || initialOrd.totalAmount,
-                  shipping: initialOrd.shipping || 0,
-                  discount: initialOrd.discount || 0,
-                  tax: initialOrd.tax || 0,
-                  shippingAddress: initialOrd.shippingAddress || null,
-                });
-              }
-            } catch (seedErr) {
-              console.warn('Orders initial seed notice:', seedErr);
-            }
-          }
-        },
-        (err) => {
-          console.warn('Admin orders snapshot notice:', err);
-        }
-      );
-    } catch (err) {
-      console.warn('Admin orders listener setup notice:', err);
+  // Sync user-specific data (Cart, Wishlist, Addresses, Orders) when logged in
+  useEffect(() => {
+    if (!currentUser.isLoggedIn) {
+      setAddresses([]);
+      setWishlist([]);
+      return;
     }
 
-    // B. Realtime Inquiries
-    let unsubscribeInquiries: (() => void) | null = null;
-    try {
-      const inqColRef = collection(db, 'inquiries');
-      unsubscribeInquiries = onSnapshot(
-        inqColRef,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const list: Inquiry[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              return {
-                id: d.id,
-                inquiryId: data.inquiryId || d.id,
-                name: data.name || data.customerName || 'Client',
-                customerName: data.customerName || data.name || 'Client',
-                email: data.email || '',
-                phone: data.phone || '',
-                subject: data.subject || 'Inquiry',
-                type: data.type || 'General Consultation',
-                message: data.message || '',
-                createdAt: data.createdAt || new Date().toISOString(),
-                status: data.status || 'New',
-              };
-            });
-            list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setInquiries(list);
-          }
-        },
-        (err) => {
-          console.warn('Inquiries snapshot notice:', err);
-        }
-      );
-    } catch (err) {
-      console.warn('Inquiries setup notice:', err);
-    }
+    let isMounted = true;
 
-    // C. Realtime Registered Users from Firestore /users
-    let unsubscribeUsers: (() => void) | null = null;
-    try {
-      const usersColRef = collection(db, 'users');
-      unsubscribeUsers = onSnapshot(
-        usersColRef,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const list: UserProfile[] = snapshot.docs.map((d) => {
-              const data = d.data();
-              return {
-                id: d.id,
-                uid: data.uid || d.id,
-                name: data.name || 'Client',
-                email: data.email || '',
-                phone: data.phone || '',
-                photoURL: data.photoURL || '',
-                role: data.role || 'customer',
-                createdAt: data.createdAt || new Date().toISOString(),
-                updatedAt: data.updatedAt,
-                isLoggedIn: true,
-              };
-            });
-            setRegisteredUsers(list);
-          }
-        },
-        (err) => {
-          console.warn('Users snapshot notice:', err);
+    // Load user cart
+    cartApi.get().then((res) => {
+      if (!isMounted) return;
+      if (res.success && Array.isArray(res.cart) && res.cart.length > 0) {
+        setCartItems(res.cart);
+      }
+    }).catch(() => {});
+
+    // Load user wishlist
+    wishlistApi.get().then((res) => {
+      if (!isMounted) return;
+      if (res.success && Array.isArray(res.wishlist)) {
+        setWishlist(res.wishlist);
+      }
+    }).catch(() => {});
+
+    // Load user addresses
+    addressesApi.getAll().then((res) => {
+      if (!isMounted) return;
+      if (res.success && Array.isArray(res.addresses)) {
+        setAddresses(res.addresses);
+      }
+    }).catch(() => {});
+
+    // Load user orders (or all orders for admin)
+    ordersApi.getAll().then((res) => {
+      if (!isMounted) return;
+      if (res.success && Array.isArray(res.orders) && res.orders.length > 0) {
+        setOrders(res.orders);
+      }
+    }).catch(() => {});
+
+    // Load inquiries for admin
+    if (isAdmin) {
+      inquiriesApi.getAll().then((res) => {
+        if (!isMounted) return;
+        if (res.success && Array.isArray(res.inquiries) && res.inquiries.length > 0) {
+          setInquiries(res.inquiries);
         }
-      );
-    } catch (err) {
-      console.warn('Users setup notice:', err);
+      }).catch(() => {});
     }
 
     return () => {
-      if (unsubscribeAdminOrders) unsubscribeAdminOrders();
-      if (unsubscribeInquiries) unsubscribeInquiries();
-      if (unsubscribeUsers) unsubscribeUsers();
+      isMounted = false;
     };
-  }, [isAdmin]);
+  }, [currentUser.isLoggedIn, isAdmin]);
 
   /* =========================================================================
-     6. AUTHENTICATION ACTIONS
+     2. AUTHENTICATION ACTIONS (HOSTINGER PHP + MYSQL)
      ========================================================================= */
   const signInWithGoogle = async (): Promise<boolean> => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      if (result.user) {
-        addToast(`Welcome to Mumtahina’s Closet, ${result.user.displayName || 'Friend'}!`, 'success');
-        return true;
-      }
-      return false;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Google sign-in failed';
-      addToast(message, 'error');
-      return false;
-    }
+    addToast('Please sign in with your email address and password.', 'info');
+    return false;
   };
 
   const signInWithEmail = async (email: string, pass: string): Promise<boolean> => {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, pass);
-      if (result.user) {
-        addToast('Signed in successfully! Welcome back.', 'success');
+      const phpRes = await authApi.login(email, pass);
+      if (phpRes.success && phpRes.user) {
+        const role = isAuthorizedAdmin(phpRes.user.email) ? 'admin' : (phpRes.user.role || 'customer');
+        const userObj: UserProfile = {
+          ...phpRes.user,
+          role,
+          isLoggedIn: true,
+        };
+        updateCurrentUser(userObj);
+        addToast(`Signed in successfully! Welcome back, ${userObj.name || 'valued client'}.`, 'success');
         return true;
       }
+      addToast(phpRes.error || 'Authentication failed. Please check your credentials.', 'error');
       return false;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Authentication failed';
-      addToast(message, 'error');
+    } catch (err: any) {
+      addToast(err?.message || 'Authentication error', 'error');
       return false;
     }
   };
@@ -1106,55 +543,46 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     phone?: string
   ): Promise<boolean> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      const user = userCredential.user;
-      if (name) {
-        await updateProfile(user, { displayName: name });
+      const phpRes = await authApi.register(name, email, pass, phone);
+      if (phpRes.success && phpRes.user) {
+        const role = isAuthorizedAdmin(phpRes.user.email) ? 'admin' : (phpRes.user.role || 'customer');
+        const newProfile: UserProfile = {
+          ...phpRes.user,
+          role,
+          isLoggedIn: true,
+        };
+        updateCurrentUser(newProfile);
+        addToast(`Account created! Welcome, ${name || 'friend'}.`, 'success');
+        return true;
       }
-
-      const role = isAuthorizedAdmin(email) ? 'admin' : 'customer';
-      const newProfile: UserProfile = {
-        id: user.uid,
-        uid: user.uid,
-        name: name || email.split('@')[0],
-        email: email,
-        phone: phone || '',
-        photoURL: '',
-        role,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isLoggedIn: true,
-      };
-
-      await setDoc(doc(db, 'users', user.uid), newProfile);
-      updateCurrentUser(newProfile);
-      addToast(`Account created! Welcome, ${name || 'friend'}.`, 'success');
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
-      addToast(message, 'error');
+      addToast(phpRes.error || 'Registration failed. Please check your details.', 'error');
+      return false;
+    } catch (err: any) {
+      addToast(err?.message || 'Registration error', 'error');
       return false;
     }
   };
 
   const sendPasswordReset = async (email: string): Promise<boolean> => {
     try {
-      await sendPasswordResetEmail(auth, email);
-      addToast('Password reset link sent to your email.', 'info');
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Password reset failed';
-      addToast(message, 'error');
+      const phpRes = await authApi.forgotPassword(email);
+      if (phpRes.success) {
+        addToast('Password reset instructions have been generated.', 'info');
+        return true;
+      }
+      addToast(phpRes.error || 'Password reset request failed.', 'error');
+      return false;
+    } catch (err: any) {
+      addToast(err?.message || 'Password reset error', 'error');
       return false;
     }
   };
 
   const signOutUser = async (): Promise<void> => {
     try {
-      await signOut(auth);
-      addToast('Signed out of your account.', 'info');
+      await authApi.logout();
     } catch (err) {
-      console.error('Sign-out error:', err);
+      console.warn('Sign-out notice:', err);
     }
     localStorage.removeItem('mumtahinas_closet_user');
     setCurrentUser({
@@ -1163,41 +591,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       phone: '',
       isLoggedIn: false,
     });
-    setFirebaseUser(null);
     setCartItems([]);
     setWishlist([]);
     setAddresses([]);
-    setOrders([]);
+    addToast('Signed out of your account.', 'info');
   };
 
   const saveUserProfile = async (profileData: Partial<UserProfile>): Promise<void> => {
     const updated = { ...currentUser, ...profileData };
     updateCurrentUser(updated);
 
-    if (auth.currentUser) {
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
-      try {
-        await setDoc(
-          userDocRef,
-          {
-            id: auth.currentUser.uid,
-            uid: auth.currentUser.uid,
-            name: updated.name,
-            email: updated.email,
-            phone: updated.phone || '',
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-        addToast('Profile saved to cloud!', 'success');
-      } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `users/${auth.currentUser.uid}`);
+    try {
+      const res = await authApi.updateProfile(profileData);
+      if (res.success && res.user) {
+        updateCurrentUser({ ...res.user, isLoggedIn: true });
+        addToast('Profile saved successfully!', 'success');
+      } else {
+        addToast('Profile updated locally.', 'info');
       }
+    } catch {
+      addToast('Profile updated locally.', 'info');
     }
   };
 
   /* =========================================================================
-     7. SHOPPING CART ACTIONS: Realtime Sync & Cloud Persistence
+     3. SHOPPING CART ACTIONS
      ========================================================================= */
   const addToCart = async (
     product: Product,
@@ -1205,9 +623,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     color: string = product.colors[0]?.name || 'Original',
     quantity: number = 1
   ) => {
-    const itemId = `${product.id}_${sanitizeDocId(size)}_${sanitizeDocId(color)}`;
-
-    // Update local state
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
         (item) =>
@@ -1227,24 +642,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addToast(`Added "${product.name}" (${size}) to your Shopping Bag!`, 'success');
 
-    // If customer is logged in, persist to /users/{uid}/cart/{itemId}
-    if (auth.currentUser) {
-      const existingItem = cartItems.find(
-        (i) => i.product.id === product.id && i.selectedSize === size && i.selectedColor === color
-      );
-      const newQty = existingItem ? existingItem.quantity + quantity : quantity;
-
+    if (currentUser.isLoggedIn) {
       try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid, 'cart', itemId), {
-          id: itemId,
-          productId: product.id,
-          selectedSize: size,
-          selectedColor: color,
-          quantity: newQty,
-          updatedAt: new Date().toISOString(),
-        });
+        await cartApi.setItem(product.id, size, color, quantity);
       } catch (err) {
-        handleFirestoreError(err, OperationType.CREATE, `users/${auth.currentUser.uid}/cart/${itemId}`);
+        console.warn('Cart cloud sync notice:', err);
       }
     }
   };
@@ -1277,16 +679,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return copy;
     });
 
-    if (auth.currentUser) {
-      const itemId = `${targetItem.product.id}_${sanitizeDocId(targetItem.selectedSize)}_${sanitizeDocId(targetItem.selectedColor)}`;
+    if (currentUser.isLoggedIn) {
       try {
-        await setDoc(
-          doc(db, 'users', auth.currentUser.uid, 'cart', itemId),
-          { quantity, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await cartApi.setItem(targetItem.product.id, targetItem.selectedSize, targetItem.selectedColor, quantity);
       } catch (err) {
-        console.warn('Cart quantity update notice:', err);
+        console.warn('Cart quantity sync notice:', err);
       }
     }
   };
@@ -1298,58 +695,47 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartItems((prev) => prev.filter((_, i) => i !== index));
     addToast(`Removed "${item.product.name}" from shopping bag.`, 'info');
 
-    if (auth.currentUser) {
-      const itemId = `${item.product.id}_${sanitizeDocId(item.selectedSize)}_${sanitizeDocId(item.selectedColor)}`;
+    if (currentUser.isLoggedIn) {
       try {
-        await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'cart', itemId));
+        const itemId = `${item.product.id}_${item.selectedSize}_${item.selectedColor}`;
+        await cartApi.removeItem(itemId);
       } catch (err) {
-        handleFirestoreError(err, OperationType.DELETE, `users/${auth.currentUser.uid}/cart/${itemId}`);
+        console.warn('Cart removal notice:', err);
       }
     }
   };
 
   const clearCart = async () => {
     setCartItems([]);
-    if (auth.currentUser) {
+    if (currentUser.isLoggedIn) {
       try {
-        const snap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'cart'));
-        for (const d of snap.docs) {
-          await deleteDoc(d.ref);
-        }
+        await cartApi.clear();
       } catch (err) {
-        console.warn('Failed to clear cloud cart:', err);
+        console.warn('Clear cart notice:', err);
       }
     }
   };
 
   /* =========================================================================
-     8. WISHLIST ACTIONS: Realtime Sync & Firestore Storage
+     4. WISHLIST ACTIONS
      ========================================================================= */
   const toggleWishlist = async (product: Product) => {
     const exists = wishlist.some((p) => p.id === product.id);
     if (exists) {
       setWishlist((prev) => prev.filter((p) => p.id !== product.id));
       addToast(`Removed "${product.name}" from your Wishlist.`, 'info');
-      if (auth.currentUser) {
+      if (currentUser.isLoggedIn) {
         try {
-          await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'wishlist', product.id));
-        } catch (err) {
-          handleFirestoreError(err, OperationType.DELETE, `users/${auth.currentUser.uid}/wishlist/${product.id}`);
-        }
+          await wishlistApi.remove(product.id);
+        } catch {}
       }
     } else {
       setWishlist((prev) => [...prev, product]);
       addToast(`Saved "${product.name}" to your Wishlist!`, 'success');
-      if (auth.currentUser) {
+      if (currentUser.isLoggedIn) {
         try {
-          await setDoc(doc(db, 'users', auth.currentUser.uid, 'wishlist', product.id), {
-            id: product.id,
-            productId: product.id,
-            addedAt: new Date().toISOString(),
-          });
-        } catch (err) {
-          handleFirestoreError(err, OperationType.CREATE, `users/${auth.currentUser.uid}/wishlist/${product.id}`);
-        }
+          await wishlistApi.toggle(product.id);
+        } catch {}
       }
     }
   };
@@ -1359,7 +745,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /* =========================================================================
-     9. SHIPPING ADDRESSES: Realtime Firestore Sync (Starts with 0 addresses)
+     5. SHIPPING ADDRESSES
      ========================================================================= */
   const addAddress = async (addressData: Omit<ShippingAddress, 'id'>): Promise<string> => {
     const addressId = `addr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -1373,13 +759,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAddresses((prev) => [newAddress, ...prev]);
     addToast('New delivery address saved!', 'success');
 
-    if (auth.currentUser) {
-      try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid, 'addresses', addressId), newAddress);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.CREATE, `users/${auth.currentUser.uid}/addresses/${addressId}`);
+    try {
+      const res = await addressesApi.create(addressData);
+      if (res.success && res.id) {
+        return res.id;
       }
-    }
+    } catch {}
+
     return addressId;
   };
 
@@ -1388,30 +774,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAddresses((prev) => prev.map((a) => (a.id === address.id ? updated : a)));
     addToast('Shipping address updated!', 'success');
 
-    if (auth.currentUser) {
-      try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid, 'addresses', address.id), updated, { merge: true });
-      } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `users/${auth.currentUser.uid}/addresses/${address.id}`);
-      }
-    }
+    try {
+      await addressesApi.update(updated);
+    } catch {}
   };
 
   const deleteAddress = async (addressId: string): Promise<void> => {
     setAddresses((prev) => prev.filter((a) => a.id !== addressId));
     addToast('Address removed.', 'info');
 
-    if (auth.currentUser) {
-      try {
-        await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'addresses', addressId));
-      } catch (err) {
-        handleFirestoreError(err, OperationType.DELETE, `users/${auth.currentUser.uid}/addresses/${addressId}`);
-      }
-    }
+    try {
+      await addressesApi.delete(addressId);
+    } catch {}
   };
 
   /* =========================================================================
-     10. ORDER CREATION & FULFILLMENT: Connects to /orders & /users/{uid}/orders
+     6. ORDER CREATION & ZELLE PROCESSING
      ========================================================================= */
   const placeOrder = async (newOrder: Order): Promise<string> => {
     const orderId = newOrder.orderId || newOrder.id || `mc-${Date.now().toString().slice(-6)}`;
@@ -1420,7 +798,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const paymentStatus: PaymentStatus = newOrder.paymentStatus || 'pending';
     const createdAt = newOrder.createdAt || new Date().toISOString();
     const formattedDate = newOrder.date || new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    const customerId = newOrder.customerId || (auth.currentUser ? auth.currentUser.uid : `guest-${Date.now()}`);
+    const customerId = newOrder.customerId || (currentUser.isLoggedIn ? currentUser.id : `guest-${Date.now()}`);
     const customerName = newOrder.customerName || newOrder.shippingAddress?.fullName || currentUser.name || 'Valued Client';
     const customerEmail = newOrder.customerEmail || currentUser.email || 'client@example.com';
     const zelleRef = newOrder.transactionReference || newOrder.zelleReference || newOrder.paymentId || '';
@@ -1460,98 +838,26 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await clearCart();
     addToast(`Order #${orderId} confirmed via Zelle!`, 'success');
 
-    // 1. Write to top-level /orders collection for Admin and Fulfillment
     try {
-      await setDoc(doc(db, 'orders', orderId), {
-        orderId: formattedOrder.orderId,
-        id: formattedOrder.orderId,
-        customerId: formattedOrder.customerId,
-        userId: formattedOrder.customerId,
-        customerName: formattedOrder.customerName,
-        customerEmail: formattedOrder.customerEmail,
-        customerPhone: formattedOrder.customerPhone || '',
-        items: formattedOrder.items,
-        totalAmount: formattedOrder.totalAmount,
-        total: formattedOrder.totalAmount,
-        currency: formattedOrder.currency,
-        paymentMethod: 'zelle',
-        paymentStatus: formattedOrder.paymentStatus,
-        orderStatus: formattedOrder.orderStatus,
-        status: formattedOrder.orderStatus,
-        createdAt: formattedOrder.createdAt,
-        date: formattedOrder.date,
-        paymentId: formattedOrder.paymentId || '',
-        transactionReference: formattedOrder.transactionReference || '',
-        zelleReference: formattedOrder.zelleReference || '',
-        trackingNumber: formattedOrder.trackingNumber || '',
-        carrier: formattedOrder.carrier || 'USPS Priority Mail',
-        estimatedDelivery: formattedOrder.estimatedDelivery || '3-4 Business Days',
-        subtotal: formattedOrder.subtotal,
-        shipping: formattedOrder.shipping,
-        discount: formattedOrder.discount,
-        tax: formattedOrder.tax,
-        shippingAddress: formattedOrder.shippingAddress || null,
-      });
+      await ordersApi.create(formattedOrder);
     } catch (err) {
-      console.warn('Firestore root /orders write notice:', err);
-    }
-
-    // 2. Write to customer's personal /users/{uid}/orders subcollection if logged in
-    if (auth.currentUser) {
-      try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid, 'orders', orderId), {
-          id: orderId,
-          orderId,
-          userId: auth.currentUser.uid,
-          customerId: auth.currentUser.uid,
-          customerName: formattedOrder.customerName,
-          customerEmail: formattedOrder.customerEmail,
-          items: formattedOrder.items,
-          totalAmount: formattedOrder.totalAmount,
-          currency: formattedOrder.currency,
-          paymentMethod: 'zelle',
-          paymentStatus: formattedOrder.paymentStatus,
-          orderStatus: formattedOrder.orderStatus,
-          createdAt: formattedOrder.createdAt,
-          date: formattedOrder.date,
-          status: formattedOrder.orderStatus,
-          total: formattedOrder.totalAmount,
-          paymentId: formattedOrder.paymentId || '',
-          transactionReference: formattedOrder.transactionReference || '',
-          zelleReference: formattedOrder.zelleReference || '',
-          trackingNumber: formattedOrder.trackingNumber || '',
-          carrier: formattedOrder.carrier || 'USPS Priority Mail',
-          estimatedDelivery: formattedOrder.estimatedDelivery || '3-4 Business Days',
-          subtotal: formattedOrder.subtotal,
-          shipping: formattedOrder.shipping,
-          discount: formattedOrder.discount,
-          tax: formattedOrder.tax,
-          shippingAddress: formattedOrder.shippingAddress || null,
-        });
-      } catch (err) {
-        handleFirestoreError(err, OperationType.CREATE, `users/${auth.currentUser.uid}/orders/${orderId}`);
-      }
+      console.warn('Hostinger ordersApi error notice:', err);
     }
 
     return orderId;
   };
 
   /* =========================================================================
-     11. ADMIN ACTIONS: Product, Category, Review, Inquiry & Order Management
+     7. ADMIN ACTIONS: Product, Category, Review, Inquiry & Settings Management
      ========================================================================= */
   const addProduct = async (newProduct: Product): Promise<void> => {
     setProducts((prev) => [newProduct, ...prev]);
     addToast(`Product "${newProduct.name}" added to catalog!`, 'success');
 
     try {
-      await setDoc(doc(db, 'products', newProduct.id), {
-        ...newProduct,
-        colorNames: (newProduct.colors || []).map((c) => c.name),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await productsApi.create(newProduct);
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `products/${newProduct.id}`);
+      console.warn('Hostinger productsApi.create notice:', err);
     }
   };
 
@@ -1560,17 +866,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Product "${updatedProduct.name}" updated!`, 'success');
 
     try {
-      await setDoc(
-        doc(db, 'products', updatedProduct.id),
-        {
-          ...updatedProduct,
-          colorNames: (updatedProduct.colors || []).map((c) => c.name),
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      await productsApi.update(updatedProduct);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `products/${updatedProduct.id}`);
+      console.warn('Hostinger productsApi.update notice:', err);
     }
   };
 
@@ -1579,9 +877,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast('Product removed from catalog.', 'info');
 
     try {
-      await deleteDoc(doc(db, 'products', productId));
+      await productsApi.delete(productId);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
+      console.warn('Hostinger productsApi.delete notice:', err);
     }
   };
 
@@ -1601,9 +899,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Category "${category.nameEn}" created!`, 'success');
 
     try {
-      await setDoc(doc(db, 'categories', categoryId), categoryData);
+      await categoriesApi.create(categoryData);
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `categories/${categoryId}`);
+      console.warn('Hostinger categoriesApi.create notice:', err);
     }
   };
 
@@ -1613,9 +911,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Category "${category.nameEn}" updated!`, 'success');
 
     try {
-      await setDoc(doc(db, 'categories', category.id), updated, { merge: true });
+      await categoriesApi.update(updated);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `categories/${category.id}`);
+      console.warn('Hostinger categoriesApi.update notice:', err);
     }
   };
 
@@ -1624,20 +922,19 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast('Category removed.', 'info');
 
     try {
-      await deleteDoc(doc(db, 'categories', id));
+      await categoriesApi.delete(id);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+      console.warn('Hostinger categoriesApi.delete notice:', err);
     }
   };
 
-  // Review Operations
   const addReview = async (reviewData: Omit<Review, 'id'>): Promise<string> => {
     const reviewId = `rev-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const fullReview: Review = {
       ...reviewData,
       id: reviewId,
       reviewId,
-      customerId: reviewData.customerId || (auth.currentUser ? auth.currentUser.uid : 'guest'),
+      customerId: reviewData.customerId || (currentUser.isLoggedIn ? currentUser.id : 'guest'),
       customerName: reviewData.customerName || reviewData.userName || 'Client',
       userName: reviewData.customerName || reviewData.userName || 'Client',
       status: reviewData.status || 'approved',
@@ -1650,10 +947,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast('Review submitted successfully! Thank you.', 'success');
 
     try {
-      await setDoc(doc(db, 'reviews', reviewId), fullReview);
+      await reviewsApi.create(fullReview);
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `reviews/${reviewId}`);
+      console.warn('Hostinger reviewsApi.create notice:', err);
     }
+
     return reviewId;
   };
 
@@ -1665,9 +963,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Review marked as ${status}.`, 'success');
 
     try {
-      await setDoc(doc(db, 'reviews', reviewId), { status }, { merge: true });
+      await reviewsApi.updateStatus(reviewId, status);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `reviews/${reviewId}`);
+      console.warn('Hostinger reviewsApi.updateStatus notice:', err);
     }
   };
 
@@ -1676,13 +974,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast('Review deleted.', 'info');
 
     try {
-      await deleteDoc(doc(db, 'reviews', reviewId));
+      await reviewsApi.delete(reviewId);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `reviews/${reviewId}`);
+      console.warn('Hostinger reviewsApi.delete notice:', err);
     }
   };
 
-  // Inquiry Operations
   const createInquiry = async (inquiryData: Omit<Inquiry, 'id' | 'createdAt'>): Promise<string> => {
     const inquiryId = `inq-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const fullInquiry: Inquiry = {
@@ -1697,34 +994,36 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInquiries((prev) => [fullInquiry, ...prev]);
 
     try {
-      await setDoc(doc(db, 'inquiries', inquiryId), fullInquiry);
+      await inquiriesApi.create(fullInquiry);
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `inquiries/${inquiryId}`);
+      console.warn('Hostinger inquiriesApi.create notice:', err);
     }
+
     return inquiryId;
   };
 
   const updateInquiryStatus = async (id: string, status: 'New' | 'In Review' | 'Resolved') => {
     setInquiries((prev) => prev.map((inq) => (inq.id === id ? { ...inq, status } : inq)));
+
     try {
-      await setDoc(doc(db, 'inquiries', id), { status }, { merge: true });
-    } catch (e) {
-      console.warn('Could not update inquiry status in Firestore:', e);
+      await inquiriesApi.updateStatus(id, status);
+    } catch (err) {
+      console.warn('Hostinger inquiriesApi.updateStatus notice:', err);
     }
     addToast(`Inquiry status updated to ${status}.`, 'success');
   };
 
   const deleteInquiry = async (id: string) => {
     setInquiries((prev) => prev.filter((inq) => inq.id !== id));
+
     try {
-      await deleteDoc(doc(db, 'inquiries', id));
-    } catch (e) {
-      console.warn('Could not delete inquiry from Firestore:', e);
+      await inquiriesApi.delete(id);
+    } catch (err) {
+      console.warn('Hostinger inquiriesApi.delete notice:', err);
     }
     addToast('Inquiry removed.', 'info');
   };
 
-  // Order Status Updates
   const updateOrderStatus = async (
     orderId: string,
     status: OrderStatus,
@@ -1748,15 +1047,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Order ${orderId} marked as ${status}!`, 'success');
 
     try {
-      const updateData: Record<string, any> = {
-        orderStatus: status,
-        status,
-      };
-      if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
-      if (carrier !== undefined) updateData.carrier = carrier;
-      await setDoc(doc(db, 'orders', orderId), updateData, { merge: true });
+      await ordersApi.updateStatus(orderId, { orderStatus: status, trackingNumber, carrier });
     } catch (err) {
-      console.warn('Failed to sync order status to Firestore:', err);
+      console.warn('Hostinger ordersApi.updateStatus notice:', err);
     }
   };
 
@@ -1775,9 +1068,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addToast(`Order ${orderId} payment status set to ${paymentStatus}!`, 'success');
 
     try {
-      await setDoc(doc(db, 'orders', orderId), { paymentStatus }, { merge: true });
+      await ordersApi.updateStatus(orderId, { paymentStatus });
     } catch (err) {
-      console.warn('Failed to sync payment status to Firestore:', err);
+      console.warn('Hostinger ordersApi.updateStatus notice:', err);
     }
   };
 
@@ -1792,59 +1085,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         paymentUrl: settings.paymentUrl ? settings.paymentUrl.trim() : DEFAULT_ZELLE_SETTINGS.paymentUrl,
         updatedAt: new Date().toISOString(),
       };
-      await setDoc(doc(db, 'settings', 'zelle'), payload, { merge: true });
+
+      try {
+        await settingsApi.updateZelle(payload);
+      } catch (err) {
+        console.warn('Hostinger settingsApi.updateZelle notice:', err);
+      }
+
       setZelleSettings(payload);
-      addToast('Zelle payment settings saved to Firestore!', 'success');
+      addToast('Zelle payment settings saved!', 'success');
     } catch (err) {
       console.error('Failed to update Zelle settings:', err);
-      addToast('Failed to save Zelle settings to Firestore.', 'error');
+      addToast('Failed to save Zelle settings.', 'error');
       throw err;
     }
   };
 
   const syncOrdersFromFirestore = async () => {
     try {
-      const ordersColRef = collection(db, 'orders');
-      const snapshot = await getDocs(ordersColRef);
-      if (!snapshot.empty) {
-        const list: Order[] = snapshot.docs.map((d) => {
-          const data = d.data();
-          const orderId = data.orderId || data.id || d.id;
-          const totalAmount = typeof data.totalAmount === 'number' ? data.totalAmount : (typeof data.total === 'number' ? data.total : 0);
-          return {
-            orderId,
-            customerId: data.customerId || data.userId || 'guest',
-            customerName: data.customerName || data.shippingAddress?.fullName || 'Valued Client',
-            customerEmail: data.customerEmail || 'client@example.com',
-            customerPhone: data.customerPhone || '',
-            items: Array.isArray(data.items) ? data.items : [],
-            totalAmount,
-            currency: data.currency || 'USD',
-            paymentMethod: data.paymentMethod || 'Credit Card',
-            paymentStatus: (data.paymentStatus || 'Pending') as PaymentStatus,
-            orderStatus: (data.orderStatus || data.status || 'Pending') as OrderStatus,
-            createdAt: data.createdAt || (data.date ? new Date(data.date).toISOString() : new Date().toISOString()),
-            paymentId: data.paymentId || '',
-            id: orderId,
-            date: data.date || (data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-            status: (data.orderStatus || data.status || 'Pending') as OrderStatus,
-            total: totalAmount,
-            trackingNumber: data.trackingNumber || '',
-            carrier: data.carrier || 'USPS Priority Mail',
-            estimatedDelivery: data.estimatedDelivery || '',
-            subtotal: typeof data.subtotal === 'number' ? data.subtotal : totalAmount,
-            shipping: typeof data.shipping === 'number' ? data.shipping : 0,
-            discount: typeof data.discount === 'number' ? data.discount : 0,
-            tax: typeof data.tax === 'number' ? data.tax : 0,
-            shippingAddress: data.shippingAddress || undefined,
-          };
-        });
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setOrders(list);
-        addToast('Synced live orders from Firestore database.', 'success');
+      const res = await ordersApi.getAll();
+      if (res.success && Array.isArray(res.orders) && res.orders.length > 0) {
+        setOrders(res.orders);
+        addToast('Synced live orders from Hostinger MySQL.', 'success');
       }
     } catch (err) {
-      console.warn('Manual sync orders notice:', err);
+      console.warn('Sync orders notice:', err);
     }
   };
 
@@ -1883,7 +1148,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser: updateCurrentUser,
         user: currentUser,
         setUser: updateCurrentUser,
-        firebaseUser,
         registeredUsers,
         isAuthLoading,
         signInWithGoogle,

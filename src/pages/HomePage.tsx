@@ -160,279 +160,293 @@ export const HomePage: React.FC = () => {
       </AnimatedSection>
 
       {/* Trust & Craftsmanship Highlights */}
-      <section className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-8 rounded-2xl bg-[#FAF0F2] border border-[#F4D3D7] w-full min-w-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#2D6A4F] shadow-2xs flex-shrink-0">
-              <Truck className="w-6 h-6" />
+      <AnimatedSection yOffset={14}>
+        <section className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-8 rounded-2xl bg-[#FAF0F2] border border-[#F4D3D7] w-full min-w-0">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#2D6A4F] shadow-2xs flex-shrink-0">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Fast USA Delivery</h4>
+                <p className="text-xs text-slate-600">Free shipping on orders over $75</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Fast USA Delivery</h4>
-              <p className="text-xs text-slate-600">Free shipping on orders over $75</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#E58C9D] shadow-2xs flex-shrink-0">
-              <Sparkles className="w-6 h-6" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#E58C9D] shadow-2xs flex-shrink-0">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Opaque & Modest</h4>
+                <p className="text-xs text-slate-600">Guaranteed non-sheer luxury crepe</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Opaque & Modest</h4>
-              <p className="text-xs text-slate-600">Guaranteed non-sheer luxury crepe</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#2D6A4F] shadow-2xs flex-shrink-0">
-              <RefreshCw className="w-6 h-6" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#2D6A4F] shadow-2xs flex-shrink-0">
+                <RefreshCw className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-serif text-sm font-bold text-[#0F1E36]">30-Day Returns</h4>
+                <p className="text-xs text-slate-600">Hassle-free USA prepaid exchange</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-serif text-sm font-bold text-[#0F1E36]">30-Day Returns</h4>
-              <p className="text-xs text-slate-600">Hassle-free USA prepaid exchange</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#0F1E36] shadow-2xs flex-shrink-0">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Dallas Atelier QC</h4>
-              <p className="text-xs text-slate-600">Hand-inspected before dispatch</p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#F0E4E6] flex items-center justify-center text-[#0F1E36] shadow-2xs flex-shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-serif text-sm font-bold text-[#0F1E36]">Dallas Atelier QC</h4>
+                <p className="text-xs text-slate-600">Hand-inspected before dispatch</p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
 
       {/* Featured Products Section */}
-      <section id="featured-products-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
-              Handpicked Styles
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
-              Featured Products
-            </h2>
-          </div>
-          <Link
-            to="/shop"
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
-          >
-            <span>View All Products</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
-          {featuredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onQuickView={(p) => setQuickViewProduct(p)}
-              isWishlisted={wishlistIds.includes(product.id)}
-              onToggleWishlist={toggleWishlist}
-              onAddToCartDirect={(p) => addToCart(p)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* New Arrivals Section */}
-      <section id="new-arrivals-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
-              Fresh from the Atelier
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
-              New Arrivals
-            </h2>
-          </div>
-          <Link
-            to="/new-arrivals"
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
-          >
-            <span>View All New Pieces</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
-          {newArrivals.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onQuickView={(p) => setQuickViewProduct(p)}
-              isWishlisted={wishlistIds.includes(product.id)}
-              onToggleWishlist={toggleWishlist}
-              onAddToCartDirect={(p) => addToCart(p)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Promotional Section: Editorial Spotlight Banner */}
-      <section id="promotional-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0F1E36] text-white border border-[#1C2E4C] shadow-lg w-full min-w-0">
-          <div className="grid grid-cols-1 lg:grid-cols-12 items-center">
-            {/* Left Imagery */}
-            <div className="lg:col-span-6 relative aspect-[16/10] lg:aspect-auto lg:h-[420px] w-full min-w-0">
-              <img
-                src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=85"
-                alt="Mumtahina's Modest Couture"
-                className="w-full h-full object-cover object-top opacity-90"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-transparent to-[#0F1E36]/90" />
-            </div>
-
-            {/* Right Text Content */}
-            <div className="lg:col-span-6 p-6 sm:p-12 lg:p-14 space-y-4 sm:space-y-5">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#F4D3D7]">
-                Artisanal Modest Craftsmanship
+      <AnimatedSection yOffset={16}>
+        <section id="featured-products-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
+                Handpicked Styles
               </span>
-              <h2 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
-                The Royal Crepe & Organza Abaya Capsule
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
+                Featured Products
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
-                Each silhouette is drafted with calibrated lengths to skim effortlessly without dragging, lined with ultra-breathable rayon to guarantee complete opacity under direct sunlight.
-              </p>
-              <div className="pt-2">
-                <Link
-                  to="/category/abaya"
-                  className="inline-flex items-center gap-2 px-6 sm:px-7 py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
-                >
-                  <span>Explore The Capsule</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Best Sellers Section */}
-      <section id="best-sellers-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
-              Client Favorites
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
-              Best Sellers
-            </h2>
-          </div>
-          <Link
-            to="/best-sellers"
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
-          >
-            <span>View All Best Sellers</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
-          {bestSellers.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onQuickView={(p) => setQuickViewProduct(p)}
-              isWishlisted={wishlistIds.includes(product.id)}
-              onToggleWishlist={toggleWishlist}
-              onAddToCartDirect={(p) => addToCart(p)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Customer Testimonials */}
-      <section className="bg-[#FAF7F6] border-y border-[#F0E4E6] py-12 sm:py-16 w-full max-w-full overflow-hidden">
-        <div className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
-              Loved by Modest Shoppers
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
-              What Our USA Customers Say
-            </h2>
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
+            >
+              <span>View All Products</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full min-w-0">
-            {approvedReviews.map((rev) => (
-              <div
-                key={rev.id}
-                className="p-6 rounded-2xl bg-white border border-[#F0E4E6] shadow-2xs flex flex-col justify-between w-full min-w-0"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-amber-500">
-                    {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
-                  </div>
-                  <h4 className="font-serif text-base font-bold text-[#0F1E36]">
-                    "{rev.title}"
-                  </h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {rev.comment}
-                  </p>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-[#F5EBED] flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#0F1E36]">{rev.userName || rev.customerName}</span>
-                  <span className="text-[11px] font-medium text-[#2D6A4F] bg-[#EBF5F0] px-2 py-0.5 rounded">
-                    Verified Buyer
-                  </span>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
+            {featuredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickView={(p) => setQuickViewProduct(p)}
+                isWishlisted={wishlistIds.includes(product.id)}
+                onToggleWishlist={toggleWishlist}
+                onAddToCartDirect={(p) => addToCart(p)}
+              />
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
+
+      {/* New Arrivals Section */}
+      <AnimatedSection yOffset={16}>
+        <section id="new-arrivals-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
+                Fresh from the Atelier
+              </span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
+                New Arrivals
+              </h2>
+            </div>
+            <Link
+              to="/new-arrivals"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
+            >
+              <span>View All New Pieces</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
+            {newArrivals.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickView={(p) => setQuickViewProduct(p)}
+                isWishlisted={wishlistIds.includes(product.id)}
+                onToggleWishlist={toggleWishlist}
+                onAddToCartDirect={(p) => addToCart(p)}
+              />
+            ))}
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* Promotional Section: Editorial Spotlight Banner */}
+      <AnimatedSection yOffset={16}>
+        <section id="promotional-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0F1E36] text-white border border-[#1C2E4C] shadow-lg w-full min-w-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 items-center">
+              {/* Left Imagery */}
+              <div className="lg:col-span-6 relative aspect-[16/10] lg:aspect-auto lg:h-[420px] w-full min-w-0">
+                <img
+                  src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=85"
+                  alt="Mumtahina's Modest Couture"
+                  className="w-full h-full object-cover object-top opacity-90"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-transparent to-[#0F1E36]/90" />
+              </div>
+
+              {/* Right Text Content */}
+              <div className="lg:col-span-6 p-6 sm:p-12 lg:p-14 space-y-4 sm:space-y-5">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#F4D3D7]">
+                  Artisanal Modest Craftsmanship
+                </span>
+                <h2 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
+                  The Royal Crepe & Organza Abaya Capsule
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
+                  Each silhouette is drafted with calibrated lengths to skim effortlessly without dragging, lined with ultra-breathable rayon to guarantee complete opacity under direct sunlight.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    to="/category/abaya"
+                    className="inline-flex items-center gap-2 px-6 sm:px-7 py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    <span>Explore The Capsule</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* Best Sellers Section */}
+      <AnimatedSection yOffset={16}>
+        <section id="best-sellers-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
+                Client Favorites
+              </span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
+                Best Sellers
+              </h2>
+            </div>
+            <Link
+              to="/best-sellers"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2D6A4F] hover:text-[#1B4332] group"
+            >
+              <span>View All Best Sellers</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full min-w-0">
+            {bestSellers.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickView={(p) => setQuickViewProduct(p)}
+                isWishlisted={wishlistIds.includes(product.id)}
+                onToggleWishlist={toggleWishlist}
+                onAddToCartDirect={(p) => addToCart(p)}
+              />
+            ))}
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* Customer Testimonials */}
+      <AnimatedSection yOffset={16}>
+        <section className="bg-[#FAF7F6] border-y border-[#F0E4E6] py-12 sm:py-16 w-full max-w-full overflow-hidden">
+          <div className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
+            <div className="text-center max-w-xl mx-auto mb-10">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2D6A4F]">
+                Loved by Modest Shoppers
+              </span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36] mt-1">
+                What Our USA Customers Say
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full min-w-0">
+              {approvedReviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="p-6 rounded-2xl bg-white border border-[#F0E4E6] shadow-2xs flex flex-col justify-between w-full min-w-0"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1 text-amber-500">
+                      {[...Array(rev.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400" />
+                      ))}
+                    </div>
+                    <h4 className="font-serif text-base font-bold text-[#0F1E36]">
+                      "{rev.title}"
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {rev.comment}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-[#F5EBED] flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#0F1E36]">{rev.userName || rev.customerName}</span>
+                    <span className="text-[11px] font-medium text-[#2D6A4F] bg-[#EBF5F0] px-2 py-0.5 rounded">
+                      Verified Buyer
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
 
       {/* Newsletter Section */}
-      <section id="home-newsletter-section" className="max-w-4xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 pb-8 w-full min-w-0">
-        <div className="bg-gradient-to-br from-[#FAF0F2] via-white to-[#F8ECEF] border border-[#F4D3D7] rounded-3xl p-6 sm:p-12 text-center space-y-6 shadow-xs w-full min-w-0">
-          <div className="w-12 h-12 mx-auto rounded-full bg-white border border-[#F4D3D7] flex items-center justify-center text-[#2D6A4F] shadow-2xs">
-            <Mail className="w-6 h-6" />
-          </div>
-          <div className="space-y-2 max-w-lg mx-auto">
-            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36]">
-              Join the VIP Modest Circle
-            </h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Subscribe for early access to limited capsule releases, modest styling edits, and an instant 10% coupon code off your first order.
+      <AnimatedSection yOffset={16}>
+        <section id="home-newsletter-section" className="max-w-4xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 pb-8 w-full min-w-0">
+          <div className="bg-gradient-to-br from-[#FAF0F2] via-white to-[#F8ECEF] border border-[#F4D3D7] rounded-3xl p-6 sm:p-12 text-center space-y-6 shadow-xs w-full min-w-0">
+            <div className="w-12 h-12 mx-auto rounded-full bg-white border border-[#F4D3D7] flex items-center justify-center text-[#2D6A4F] shadow-2xs">
+              <Mail className="w-6 h-6" />
+            </div>
+            <div className="space-y-2 max-w-lg mx-auto">
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F1E36]">
+                Join the VIP Modest Circle
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Subscribe for early access to limited capsule releases, modest styling edits, and an instant 10% coupon code off your first order.
+              </p>
+            </div>
+
+            {newsletterSuccess ? (
+              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#EBF5F0] text-[#2D6A4F] font-semibold text-sm border border-[#52B788]">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>You're subscribed! Use coupon code <strong>USA2026</strong> for 10% off.</span>
+              </div>
+            ) : (
+              <form onSubmit={handleNewsletterSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-3 w-full">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-white border border-[#EADBDE] text-sm text-[#0F1E36] placeholder-slate-400 focus:outline-hidden focus:border-[#2D6A4F] shadow-2xs"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+                >
+                  Subscribe
+                </button>
+              </form>
+            )}
+
+            <p className="text-[11px] text-slate-400">
+              We respect your privacy. Unsubscribe at any time.
             </p>
           </div>
-
-          {newsletterSuccess ? (
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#EBF5F0] text-[#2D6A4F] font-semibold text-sm border border-[#52B788]">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>You're subscribed! Use coupon code <strong>USA2026</strong> for 10% off.</span>
-            </div>
-          ) : (
-            <form onSubmit={handleNewsletterSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-3 w-full">
-              <input
-                type="email"
-                value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="Enter your email address"
-                required
-                className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-white border border-[#EADBDE] text-sm text-[#0F1E36] placeholder-slate-400 focus:outline-hidden focus:border-[#2D6A4F] shadow-2xs"
-              />
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer whitespace-nowrap"
-              >
-                Subscribe
-              </button>
-            </form>
-          )}
-
-          <p className="text-[11px] text-slate-400">
-            We respect your privacy. Unsubscribe at any time.
-          </p>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
     </div>
   );
 };

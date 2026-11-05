@@ -6,3 +6,19 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Hostinger Server Credentials & Locks (MUST NEVER be committed or overwritten by GitHub)
+hostinger-backend/config/config.env.php
+config.env.php
+*.env.php
+!*.env.example.php
+hostinger-backend/config/installed.lock
+installed.lock
+
+# Hostinger User Uploads (Preserve live customer/product uploads during Git deployments)
+hostinger-backend/uploads/products/*
+hostinger-backend/uploads/categories/*
+hostinger-backend/uploads/general/*
+!hostinger-backend/uploads/**/.gitkeep
+!hostinger-backend/uploads/**/.htaccess
+

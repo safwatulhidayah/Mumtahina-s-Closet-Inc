@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseErrors';
+import { inquiriesApi } from '../lib/api';
 import {
   Mail,
   Phone,
@@ -37,11 +35,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page, setCurrentPage })
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const inquiryId = `inq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     try {
-      await setDoc(doc(db, 'inquiries', inquiryId), {
-        id: inquiryId,
-        inquiryId,
+      await inquiriesApi.create({
         name: contactName,
         customerName: contactName,
         email: contactEmail,
@@ -49,10 +44,9 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page, setCurrentPage })
         type: contactSubject,
         message: contactMessage,
         status: 'New',
-        createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `inquiries/${inquiryId}`);
+      console.warn('Inquiry notice:', err);
     }
     setContactSubmitted(true);
   };
