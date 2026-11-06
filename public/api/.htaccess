@@ -1,5 +1,5 @@
-# Protect config files from direct web access
-<FilesMatch "^(config\.php|config\.local\.php|\.env)">
+# Protect config and private files from direct web access
+<FilesMatch "^(config\.php|config\.local\.php|config\.env\.php|\.env|schema\.sql)">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>

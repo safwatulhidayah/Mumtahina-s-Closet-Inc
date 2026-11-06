@@ -9,10 +9,14 @@ coverage/
 
 # Hostinger Server Credentials & Private Config (MUST NEVER be committed or overwritten by GitHub)
 api/config.php
-api/config.local.php
+public/api/config.php
+dist/api/config.php
 public_html/api/config.php
 config.local.php
+*/config.local.php
+*/*/config.local.php
 config.env.php
+*/config.env.php
 *.env.php
 !*.env.example.php
 !api/config.example.php
