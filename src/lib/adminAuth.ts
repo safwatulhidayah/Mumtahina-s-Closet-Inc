@@ -4,6 +4,8 @@
  */
 
 export const AUTHORIZED_ADMIN_EMAILS = [
+  'admin',
+  'admin@mumtahinascloset.com',
   'denaislam09@gmail.com',
   'clientshabnamusa@gmail.com',
 ] as const;

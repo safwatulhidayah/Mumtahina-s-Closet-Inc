@@ -24,11 +24,11 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
   const effectiveEmail = currentUser.isLoggedIn ? currentUser.email : null;
   const userIsLoggedIn = !!currentUser.isLoggedIn;
-  const isAdmin = isAuthorizedAdmin(effectiveEmail);
+  const isAdmin = currentUser.role === 'admin' || isAuthorizedAdmin(effectiveEmail);
 
   // 1. Unauthenticated users: redirect to login
   if (!userIsLoggedIn) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
   }
 
   // 2. Authenticated as non-admin customer: strictly block and redirect

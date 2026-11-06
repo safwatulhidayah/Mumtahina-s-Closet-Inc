@@ -31,6 +31,7 @@ import { WishlistPage } from './pages/WishlistPage';
 import { AccountPage } from './pages/AccountPage';
 import { OrderHistoryPage } from './pages/OrderHistoryPage';
 import { AuthPage } from './pages/AuthPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
 import { StaticPages } from './pages/StaticPages';
 import { AdminPage } from './pages/AdminPage';
 
@@ -155,7 +156,7 @@ const AppLayout: React.FC = () => {
 
               {/* 18-19. LOGIN & REGISTER */}
               <Route path="/login" element={<AuthPage initialMode="login" />} />
-              <Route path="/admin/login" element={<AuthPage initialMode="login" />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/register" element={<AuthPage initialMode="register" />} />
               <Route path="/forgot-password" element={<AuthPage initialMode="forgot" />} />
 

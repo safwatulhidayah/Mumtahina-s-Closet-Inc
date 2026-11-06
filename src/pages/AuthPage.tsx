@@ -34,7 +34,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
     const authedEmail = currentUser && currentUser.isLoggedIn ? currentUser.email : null;
     if (!isAuthLoading && authedEmail) {
       const from = (location.state as { from?: string })?.from;
-      if (from) {
+      if (from && (from !== '/admin' || isAuthorizedAdmin(authedEmail))) {
         navigate(from, { replace: true });
       } else if (isAuthorizedAdmin(authedEmail)) {
         navigate('/admin', { replace: true });
@@ -74,7 +74,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
 
       if (success) {
         const from = (location.state as { from?: string })?.from || '/account';
-        navigate(from);
+        navigate(from !== '/admin' ? from : '/account');
       }
     } else if (mode === 'login') {
       setIsSubmitting(true);
@@ -86,7 +86,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         if (userIsAdmin) {
           navigate('/admin');
         } else {
-          const targetPath = (location.state as { from?: string })?.from || '/account';
+          const from = (location.state as { from?: string })?.from;
+          const targetPath = from && from !== '/admin' ? from : '/account';
           navigate(targetPath);
         }
       }

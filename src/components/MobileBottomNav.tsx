@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Compass, Heart, ShoppingBag, User } from 'lucide-react';
+import { Home, Compass, Heart, ShoppingBag } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const MobileBottomNav: React.FC = () => {
@@ -12,7 +12,6 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'shop', label: 'Shop', icon: Compass, path: '/shop' },
     { id: 'wishlist', label: 'Wishlist', icon: Heart, path: '/wishlist', badge: wishlistCount },
     { id: 'cart', label: 'Cart', icon: ShoppingBag, path: '/cart', badge: cartCount },
-    { id: 'account', label: 'Account', icon: User, path: '/account' },
   ];
 
   const isItemActive = (path: string) => {
@@ -33,7 +32,7 @@ export const MobileBottomNav: React.FC = () => {
       id="mobile-bottom-navigation"
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#F0E4E6] lg:hidden safe-area-pb"
     >
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-4 h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = isItemActive(item.path);

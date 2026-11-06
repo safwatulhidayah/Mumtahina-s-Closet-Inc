@@ -5,7 +5,6 @@ import {
   Search,
   Heart,
   ShoppingBag,
-  User,
   Menu,
   X,
   ChevronRight,
@@ -192,19 +191,6 @@ export const Header: React.FC = () => {
             >
               <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
             </button>
-
-            {/* Account Icon */}
-            <Link
-              to="/account"
-              id="header-account-btn"
-              className={`p-1 min-[360px]:p-1.5 sm:p-2 text-[#0F1E36] hover:text-[#2D6A4F] rounded-full hover:bg-[#FAF0F2] transition-colors ${
-                location.pathname.startsWith('/account') ? 'text-[#2D6A4F] bg-[#EBF5F0]' : ''
-              }`}
-              title="Customer Account"
-              aria-label="Customer Account"
-            >
-              <User className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-            </Link>
 
             {/* Phone/WhatsApp Support Contact */}
             <a
@@ -431,7 +417,7 @@ export const Header: React.FC = () => {
                 </div>
               </div>
 
-              {/* Drawer Footer Account CTA */}
+              {/* Drawer Footer */}
               <div className="p-4 border-t border-[#F0E4E6] bg-[#FAF7F6] space-y-2 flex-shrink-0">
                 {isAdmin && (
                   <Link
@@ -443,14 +429,6 @@ export const Header: React.FC = () => {
                     <span>Admin Dashboard</span>
                   </Link>
                 )}
-                <Link
-                  to="/account"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-semibold uppercase tracking-wider shadow-xs transition-colors"
-                >
-                  <User className="w-4 h-4" />
-                  <span>My Account / Orders</span>
-                </Link>
                 <p className="text-[11px] text-center text-slate-500">
                   Dallas, TX • Free USA Shipping over $75
                 </p>

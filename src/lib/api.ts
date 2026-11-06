@@ -117,10 +117,14 @@ export const authApi = {
     return res;
   },
 
-  async login(email: string, password: string) {
+  async login(identifier: string, password: string) {
     const res = await apiFetch<any>('/api/auth/login.php', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        username: identifier,
+        email: identifier,
+        password,
+      }),
     });
     if (res.success && res.token) {
       setAuthToken(res.token);

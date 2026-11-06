@@ -514,18 +514,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const signInWithEmail = async (email: string, pass: string): Promise<boolean> => {
+  const signInWithEmail = async (emailOrUsername: string, pass: string): Promise<boolean> => {
     try {
-      const phpRes = await authApi.login(email, pass);
+      const phpRes = await authApi.login(emailOrUsername, pass);
       if (phpRes.success && phpRes.user) {
-        const role = isAuthorizedAdmin(phpRes.user.email) ? 'admin' : (phpRes.user.role || 'customer');
+        const isAdmin = phpRes.user.role === 'admin' ||
+                        isAuthorizedAdmin(phpRes.user.email) ||
+                        isAuthorizedAdmin(emailOrUsername) ||
+                        emailOrUsername.toLowerCase().trim() === 'admin';
+        const role = isAdmin ? 'admin' : (phpRes.user.role || 'customer');
         const userObj: UserProfile = {
           ...phpRes.user,
           role,
           isLoggedIn: true,
         };
         updateCurrentUser(userObj);
-        addToast(`Signed in successfully! Welcome back, ${userObj.name || 'valued client'}.`, 'success');
+        addToast(`Signed in successfully! Welcome, ${userObj.name || 'Admin'}.`, 'success');
         return true;
       }
       addToast(phpRes.error || 'Authentication failed. Please check your credentials.', 'error');

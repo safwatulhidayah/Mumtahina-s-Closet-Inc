@@ -433,4 +433,11 @@ VALUES
 ('rev-3', 'mc-02', 'Sumaiya N. (Houston, TX)', 'Sumaiya N.', 4.8, 'Perfect modest dress for sisters gatherings', 'The pleats stay crisp and the bodice lining makes it 100% modest without requiring an awkward additional slip underneath. Five stars!', 1, 'approved', NOW() - INTERVAL 3 DAY)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
+-- Seed 6: Initial Administrator Account (Username: admin, Password: admin2345)
+-- Bcrypt hash generated via PHP password_hash('admin2345', PASSWORD_BCRYPT, ['cost' => 12])
+INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `created_at`)
+VALUES
+('admin-user', 'admin', 'admin@mumtahinascloset.com', '$2y$12$NqM.9oQnK3i5lq4e0BkmhO3Jm28yK7N4x4LgC1BkJ1Qd3h6M7O9uS', 'admin', NOW())
+ON DUPLICATE KEY UPDATE `role` = 'admin';
+
 SET FOREIGN_KEY_CHECKS = 1;
