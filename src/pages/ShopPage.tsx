@@ -107,6 +107,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           return false;
         }
 
+        // Hide specific product card from Abaya Collection display without deleting database record
+        if ((activeCategory === 'abaya' || p.category === 'abaya') && (p.id === 'mc-01' || p.name === 'Zahra Raw Silk Open Abaya')) {
+          return false;
+        }
+
         // Price filter
         if (p.price > priceRange) {
           return false;
