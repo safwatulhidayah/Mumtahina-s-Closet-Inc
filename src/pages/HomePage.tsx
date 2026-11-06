@@ -278,47 +278,6 @@ export const HomePage: React.FC = () => {
         </section>
       </AnimatedSection>
 
-      {/* Promotional Section: Editorial Spotlight Banner */}
-      <AnimatedSection yOffset={16}>
-        <section id="promotional-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">
-          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0F1E36] text-white border border-[#1C2E4C] shadow-lg w-full min-w-0">
-            <div className="grid grid-cols-1 lg:grid-cols-12 items-center">
-              {/* Left Imagery */}
-              <div className="lg:col-span-6 relative aspect-[16/10] lg:aspect-auto lg:h-[420px] w-full min-w-0">
-                <img
-                  src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=85"
-                  alt="Mumtahina's Modest Couture"
-                  className="w-full h-full object-cover object-top opacity-90"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-transparent to-[#0F1E36]/90" />
-              </div>
-
-              {/* Right Text Content */}
-              <div className="lg:col-span-6 p-6 sm:p-12 lg:p-14 space-y-4 sm:space-y-5">
-                <span className="text-xs font-bold uppercase tracking-widest text-[#F4D3D7]">
-                  Artisanal Modest Craftsmanship
-                </span>
-                <h2 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
-                  The Royal Crepe & Organza Abaya Capsule
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md">
-                  Each silhouette is drafted with calibrated lengths to skim effortlessly without dragging, lined with ultra-breathable rayon to guarantee complete opacity under direct sunlight.
-                </p>
-                <div className="pt-2">
-                  <Link
-                    to="/category/abaya"
-                    className="inline-flex items-center gap-2 px-6 sm:px-7 py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
-                  >
-                    <span>Explore The Capsule</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </AnimatedSection>
-
       {/* Best Sellers Section */}
       <AnimatedSection yOffset={16}>
         <section id="best-sellers-section" className="max-w-7xl mx-auto px-3 min-[360px]:px-4 sm:px-6 lg:px-8 w-full min-w-0">

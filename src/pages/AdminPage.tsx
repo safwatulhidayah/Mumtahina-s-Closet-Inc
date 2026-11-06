@@ -910,8 +910,15 @@ export const AdminPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F5EBED]">
-                      {filteredProducts.map((p) => (
-                        <tr key={p.id} className="hover:bg-[#FAF7F6]/50 transition-colors">
+                      {filteredProducts.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-slate-400">
+                            No products in catalog. Click "+ Add Product" to create your first item.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProducts.map((p) => (
+                          <tr key={p.id} className="hover:bg-[#FAF7F6]/50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <img
@@ -986,7 +993,7 @@ export const AdminPage: React.FC = () => {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )))}
                     </tbody>
                   </table>
                 </div>

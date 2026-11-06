@@ -295,12 +295,12 @@ export const DEFAULT_ZELLE_SETTINGS: ZelleSettings = {
 };
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Live Collections synced with Hostinger MySQL
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  // Live Collections synced with Hostinger MySQL (defaults empty until products/orders are added)
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>(INITIAL_CATEGORIES);
   const [inquiries, setInquiries] = useState<Inquiry[]>(INITIAL_INQUIRIES);
-  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS_SEED);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
   const [zelleSettings, setZelleSettings] = useState<ZelleSettings>(DEFAULT_ZELLE_SETTINGS);
@@ -414,7 +414,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Load products from MySQL
       const prodRes = await productsApi.getAll();
-      if (prodRes.success && Array.isArray(prodRes.products) && prodRes.products.length > 0) {
+      if (prodRes.success && Array.isArray(prodRes.products)) {
         setProducts(prodRes.products);
       }
 
@@ -486,7 +486,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Load user orders (or all orders for admin)
     ordersApi.getAll().then((res) => {
       if (!isMounted) return;
-      if (res.success && Array.isArray(res.orders) && res.orders.length > 0) {
+      if (res.success && Array.isArray(res.orders)) {
         setOrders(res.orders);
       }
     }).catch(() => {});

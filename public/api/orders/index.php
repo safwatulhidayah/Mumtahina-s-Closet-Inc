@@ -124,20 +124,43 @@ if ($method === 'POST') {
     }
 
     $customerName = trim($input['customerName'] ?? '');
-    $customerEmail = strtolower(trim($input['customerEmail'] ?? ''));
     $customerPhone = trim($input['customerPhone'] ?? '');
+    $customerEmail = strtolower(trim($input['customerEmail'] ?? ''));
     $items = is_array($input['items'] ?? null) ? $input['items'] : [];
+    $shippingAddress = $input['shippingAddress'] ?? null;
 
-    if (empty($customerEmail) || empty($items)) {
+    // Validate required guest customer details: Name, Phone, Items, Shipping Address
+    if (empty($customerName)) {
         send_json_response([
             'success' => false,
-            'error'   => 'Customer email and order items are required.',
-            'code'    => 'INVALID_ORDER_DATA'
+            'error'   => 'Customer Full Name is required to place an order.',
+            'code'    => 'MISSING_CUSTOMER_NAME'
         ], 400);
     }
 
+    if (empty($customerPhone)) {
+        send_json_response([
+            'success' => false,
+            'error'   => 'Customer Phone Number is required for delivery coordination.',
+            'code'    => 'MISSING_CUSTOMER_PHONE'
+        ], 400);
+    }
+
+    if (empty($items)) {
+        send_json_response([
+            'success' => false,
+            'error'   => 'Your cart is empty. Please add items before placing an order.',
+            'code'    => 'EMPTY_ORDER_ITEMS'
+        ], 400);
+    }
+
+    // Default email if guest chooses not to provide one
+    if (empty($customerEmail)) {
+        $customerEmail = 'guest_' . preg_replace('/[^0-9]/', '', $customerPhone) . '@guest.mumtahinasclosetinc.com';
+    }
+
     $currentUser = get_authenticated_user($pdo);
-    $customerId = $currentUser ? $currentUser['id'] : trim($input['customerId'] ?? ('guest-' . time()));
+    $customerId = $currentUser ? $currentUser['id'] : trim($input['customerId'] ?? ('guest-' . bin2hex(random_bytes(6))));
 
     // Generate readable Order ID: MC-XXXXXX
     $orderNumber = strtoupper(substr(uniqid(), -6));

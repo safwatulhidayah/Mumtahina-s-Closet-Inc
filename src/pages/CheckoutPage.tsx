@@ -197,7 +197,11 @@ export const CheckoutPage: React.FC = () => {
               Thank You for Your Order!
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-2">
-              A confirmation email and tracking receipt have been sent to <strong>{email}</strong>.
+              {email ? (
+                <>A confirmation email and tracking receipt have been sent to <strong>{email}</strong>.</>
+              ) : (
+                <>Your order has been recorded. Delivery tracking updates will be communicated via phone: <strong>{phone}</strong>.</>
+              )}
             </p>
           </div>
 
@@ -344,27 +348,30 @@ export const CheckoutPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-3.5 py-2.5 text-xs bg-[#FAF7F6] border border-[#EADBDE] rounded-xl focus:bg-white focus:outline-hidden focus:border-[#2D6A4F]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Mobile Phone (for delivery SMS) *
+                    Mobile Phone Number *
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. (214) 555-0198"
                     required
                     className="w-full px-3.5 py-2.5 text-xs bg-[#FAF7F6] border border-[#EADBDE] rounded-xl focus:bg-white focus:outline-hidden focus:border-[#2D6A4F]"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1">Required for USA delivery coordination</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. client@example.com (optional)"
+                    className="w-full px-3.5 py-2.5 text-xs bg-[#FAF7F6] border border-[#EADBDE] rounded-xl focus:bg-white focus:outline-hidden focus:border-[#2D6A4F]"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">For digital tracking receipt & order updates</p>
                 </div>
               </div>
             </div>

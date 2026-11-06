@@ -109,14 +109,7 @@ const AppLayout: React.FC = () => {
               <Route path="/cart" element={<CartPage />} />
 
               {/* 15. CHECKOUT */}
-              <Route
-                path="/checkout"
-                element={
-                  <ProtectedRoute>
-                    <CheckoutPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/checkout" element={<CheckoutPage />} />
 
               {/* 16. USER ACCOUNT / PROFILE */}
               <Route
