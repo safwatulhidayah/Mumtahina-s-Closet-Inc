@@ -17,8 +17,14 @@ import {
   ZelleSettings,
 } from '../types';
 
-// The API Base URL defaults to relative '/api' on the same Hostinger domain,
-const API_BASE_URL = String((import.meta as any).env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
+// The frontend API base URL for Hostinger PHP REST API
+const DEFAULT_HOSTINGER_API = 'https://mumtahinasclosetinc.com/api';
+const API_BASE_URL = String(
+  (import.meta as any).env?.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/api'
+    : DEFAULT_HOSTINGER_API)
+).replace(/\/$/, '');
 
 // Storage key for Bearer session token
 const TOKEN_KEY = 'mumtahinas_closet_auth_token';
@@ -527,51 +533,52 @@ export const uploadApi = {
 /* =========================================================================
    12. AUTOMATED DATABASE INSTALLER & HEALTH CHECK APIS
    ========================================================================= */
-export interface DatabaseStatusResponse {
-  success: boolean;
-  hasEnvConfig?: boolean;
-  isLocked?: boolean;
-  connected?: boolean;
-  installed?: boolean;
-  canInstall?: boolean;
-  tableCount?: number;
-  totalRequired?: number;
-  existingTables?: string[];
-  missingTables?: string[];
-  seeds?: {
-    zelle?: { recipient: string; phone: string };
-    adminCount?: number;
-    productCount?: number;
-    categoryCount?: number;
-  };
-  error?: string;
-  message?: string;
-}
-
-export const setupApi = {
-  async getStatus(): Promise<DatabaseStatusResponse> {
-    const res = await apiFetch<DatabaseStatusResponse>('/api/setup/status.php', { method: 'GET' });
-    return res as DatabaseStatusResponse;
-  },
-
-  async install(secret: string): Promise<{
-    success: boolean;
+export const systemApi = {
+  /**
+   * Deployment & system health check
+   */
+  async checkHealth(): Promise<{
+    status: string;
+    timestamp: string;
+    api_service: string;
+    version: string;
+    api_base_url: string;
+    config_loaded: boolean;
+    database: {
+      connected: boolean;
+      database_name?: string;
+      table_count?: number;
+      total_required?: number;
+      tables_found?: string[];
+      tables_missing?: string[];
+      is_ready?: boolean;
+    };
+    uploads: {
+      directory_exists: boolean;
+      is_writable: boolean;
+    };
     message?: string;
-    installedAt?: string;
-    tableCount?: number;
-    tables?: string[];
-    counts?: Record<string, number>;
-    locked?: boolean;
-    nextSteps?: string[];
     error?: string;
   }> {
-    return apiFetch<any>('/api/setup/install.php', {
-      method: 'POST',
-      body: JSON.stringify({ secret }),
-      headers: {
-        'X-Install-Secret': secret,
-      },
-    });
+    const res = await apiFetch<any>('/api/health.php', { method: 'GET' });
+    return res as any;
+  },
+
+  /**
+   * Tests the Hostinger PHP API and MySQL database connection
+   */
+  async testConnection(): Promise<{
+    success: boolean;
+    connected?: boolean;
+    message?: string;
+    database?: string;
+    tableCount?: number;
+    tables?: string[];
+    error?: string;
+  }> {
+    const res = await apiFetch<any>('/api/test.php', { method: 'GET' });
+    return res as any;
   },
 };
+
 

@@ -33,7 +33,6 @@ import { OrderHistoryPage } from './pages/OrderHistoryPage';
 import { AuthPage } from './pages/AuthPage';
 import { StaticPages } from './pages/StaticPages';
 import { AdminPage } from './pages/AdminPage';
-import { SetupPage } from './pages/SetupPage';
 
 const AppLayout: React.FC = () => {
   const {
@@ -182,9 +181,6 @@ const AppLayout: React.FC = () => {
                   </AdminRoute>
                 }
               />
-
-              {/* 22. DATABASE SETUP & HEALTH CHECK */}
-              <Route path="/setup" element={<SetupPage />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1857,20 +1857,11 @@ export const AdminPage: React.FC = () => {
           {/* TAB: SETTINGS */}
           {activeTab === 'settings' && (
             <div className="space-y-6 max-w-4xl mx-auto">
-              <div className="pb-4 border-b border-[#F0E4E6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-serif text-2xl font-bold text-[#0F1E36]">Store Administration Settings</h1>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Platform parameters, exclusive Zelle payment gateway configuration, and authorized access credentials
-                  </p>
-                </div>
-                <Link
-                  to="/setup"
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-[#FAF7F6] hover:bg-slate-100 text-xs font-semibold text-[#0F1E36] transition-colors shrink-0 shadow-xs"
-                >
-                  <Database className="w-4 h-4 text-[#8E1B3E]" />
-                  Database Health & Installer
-                </Link>
+              <div className="pb-4 border-b border-[#F0E4E6]">
+                <h1 className="font-serif text-2xl font-bold text-[#0F1E36]">Store Administration Settings</h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Platform parameters, exclusive Zelle payment gateway configuration, and authorized access credentials
+                </p>
               </div>
 
               {/* Zelle Payment Gateway Configuration Panel */}
