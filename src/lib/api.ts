@@ -57,7 +57,12 @@ async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string; [key: string]: any }> {
   const token = getAuthToken();
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Avoid duplicate /api prefix if API_BASE_URL already includes /api
+  const normalizedEndpoint = API_BASE_URL.endsWith('/api') && cleanEndpoint.startsWith('/api/')
+    ? cleanEndpoint.slice(4) // strip leading '/api' so it appends '/health.php' not '/api/api/health.php'
+    : cleanEndpoint;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
