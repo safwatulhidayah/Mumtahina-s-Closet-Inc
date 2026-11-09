@@ -35,6 +35,13 @@ $response['uploads'] = [
     'is_writable'      => is_writable($uploadsDir),
 ];
 
+if (!is_db_configured()) {
+    $response['status'] = 'configuration_needed';
+    $response['database']['connected'] = false;
+    $response['message'] = 'Database password is not yet configured. Please set the DB_PASS environment secret in Hostinger or create public_html/api/config.local.php.';
+    send_json_response($response, 200);
+}
+
 try {
     $pdo = get_db();
     $response['database']['connected'] = true;

@@ -9,6 +9,19 @@
 
 require_once __DIR__ . '/config.php';
 
+if (!is_db_configured()) {
+    send_json_response([
+        'success'       => false,
+        'connected'     => false,
+        'error'         => 'Database password is not yet configured. Please set the DB_PASS environment secret in Hostinger or create public_html/api/config.local.php.',
+        'code'          => 'DB_PASSWORD_REQUIRED',
+        'database'      => DB_NAME,
+        'databaseUser'  => DB_USER,
+        'databaseHost'  => DB_HOST,
+        'databasePort'  => DB_PORT,
+    ], 200);
+}
+
 try {
     $pdo = get_db();
 
