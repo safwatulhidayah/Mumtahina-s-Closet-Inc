@@ -29,10 +29,10 @@ $response = [
 ];
 
 // Check uploads folder writable
-$uploadsDir = realpath(__DIR__ . '/../uploads') ?: (dirname(__DIR__) . '/uploads');
+$uploadsDir = @realpath(__DIR__ . '/../uploads') ?: (dirname(__DIR__) . '/uploads');
 $response['uploads'] = [
-    'directory_exists' => is_dir($uploadsDir),
-    'is_writable'      => is_writable($uploadsDir),
+    'directory_exists' => @is_dir($uploadsDir),
+    'is_writable'      => @is_writable($uploadsDir),
 ];
 
 if (!is_db_configured()) {
@@ -95,6 +95,6 @@ try {
 } catch (Throwable $e) {
     $response['status'] = 'error';
     $response['database']['connected'] = false;
-    $response['message'] = 'Database connection failed. Please ensure DB_PASS is configured in public_html/api/config.php.';
+    $response['message'] = 'Database connection failed. Please verify Hostinger MySQL environment variables (DB_HOST, DB_NAME, DB_USER, DB_PASS) or config.local.php.';
     send_json_response($response, 500);
 }

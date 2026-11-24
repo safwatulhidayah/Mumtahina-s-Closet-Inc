@@ -1,11 +1,13 @@
 <?php
 /**
- * Mumtahina’s Closet Inc - Hostinger MySQL Central Config Template
+ * Mumtahina’s Closet Inc - Hostinger MySQL Server-Only Local Override Template
  *
  * INSTRUCTIONS:
- * 1. Copy this file to `config.php` on your Hostinger server (inside public_html/api/).
- * 2. Enter your actual Hostinger MySQL credentials in DB_NAME, DB_USER, and DB_PASS.
- * 3. `config.php` is excluded in .gitignore and will not be overwritten by GitHub deployments.
+ * 1. Recommended: Set DB_PASS in Hostinger hPanel -> Environment Variables (no local file needed).
+ * 2. Alternative: Copy this file to `config.local.php` inside `public_html/api/` on Hostinger
+ *    and enter your actual Hostinger MySQL password in DB_PASS.
+ * 3. `config.local.php` is excluded in .gitignore and will NOT be overwritten by Git deployments.
+ *    Do NOT overwrite `config.php` with this template file.
  */
 
 // Hostinger MySQL Database Settings

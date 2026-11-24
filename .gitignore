@@ -8,10 +8,8 @@ coverage/
 !.env.example
 
 # Hostinger Server Credentials & Private Config (MUST NEVER be committed or overwritten by GitHub)
-api/config.php
-public/api/config.php
-dist/api/config.php
-public_html/api/config.php
+# Note: api/config.php and public/api/config.php contain NO secrets; they load DB_PASS from
+# Hostinger Environment Variables or server-only config.local.php below.
 config.local.php
 */config.local.php
 */*/config.local.php
@@ -20,6 +18,7 @@ config.env.php
 *.env.php
 !*.env.example.php
 !api/config.example.php
+!public/api/config.example.php
 installed.lock
 
 # Hostinger User Uploads (Preserve live customer/product uploads during Git deployments)
